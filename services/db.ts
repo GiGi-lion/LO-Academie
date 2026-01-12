@@ -115,8 +115,7 @@ export const deleteCourseFromDB = async (id: string) => {
 // NIEUW: Functie om de database te vullen met demo data
 export const seedDatabase = async () => {
   if (!isConfigured || !db) {
-    alert("Configureer eerst Firebase in services/db.ts");
-    return;
+    throw new Error("Geen database connectie. Controleer config.");
   }
   
   try {
@@ -125,10 +124,11 @@ export const seedDatabase = async () => {
       const docRef = doc(db, "courses", course.id);
       batch.set(docRef, course);
     });
-    await batch.commit();
-    return true;
+    
+    // Explicit return of the promise
+    return await batch.commit();
   } catch (e) {
-    console.error("Fout bij uploaden data:", e);
+    console.error("Fout bij seeden van database:", e);
     throw e;
   }
 };

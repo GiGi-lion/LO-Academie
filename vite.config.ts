@@ -11,9 +11,7 @@ export default defineConfig(({ mode }) => {
     // Polyfill voor process.env om crashes in de browser te voorkomen
     // en om de Vercel Environment Variables beschikbaar te maken in de code.
     define: {
-      'process.env': {
-        API_KEY: env.API_KEY
-      }
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
     }
   };
 });

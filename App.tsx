@@ -87,16 +87,22 @@ const App: React.FC = () => {
   };
 
   const handleSeedDatabase = async () => {
-    if(window.confirm("Dit zal alle voorbeeld-scholingen uploaden naar je database. Wil je doorgaan?")) {
-      setIsSeeding(true);
-      try {
-        await seedDatabase();
-        showToast("Database gevuld met voorbeelden!");
-      } catch (e) {
-        showToast("Fout bij uploaden data");
-      } finally {
-        setIsSeeding(false);
-      }
+    if(!window.confirm("Dit zal alle voorbeeld-scholingen uploaden naar je database (bestaande items met dezelfde ID worden overschreven). Wil je doorgaan?")) {
+      return;
+    }
+
+    setIsSeeding(true);
+    try {
+      console.log("Starten met uploaden van data...");
+      await seedDatabase();
+      console.log("Upload voltooid.");
+      showToast("✅ Database succesvol gevuld met voorbeelden!");
+    } catch (e: any) {
+      console.error("Fout tijdens uploaden:", e);
+      showToast("❌ Fout bij uploaden: " + (e.message || "Onbekende fout"));
+      alert("Er ging iets mis bij het uploaden naar de database. Check de console voor details.\n\nMelding: " + (e.message || "Geen details"));
+    } finally {
+      setIsSeeding(false);
     }
   };
 
@@ -294,7 +300,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              {isLiveMode() && courses.length === 0 && (
+              {isLiveMode() && (
                 <button 
                   onClick={handleSeedDatabase}
                   disabled={isSeeding}
