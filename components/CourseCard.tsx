@@ -38,7 +38,6 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
     
     const shareUrl = course.url !== '#' ? course.url : window.location.href;
     const shareText = `Check deze scholing op LO Academie: ${course.title}`;
-    const textToCopy = `${course.title}\n${shareUrl}`;
     
     if (navigator.share) {
       try {
@@ -53,20 +52,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
       }
     }
 
-    // Fallback: Clipboard. Handle "Document not focused" and other browser restrictions.
+    // Fallback: Clipboard
     try {
+      const textToCopy = `${course.title}\n${shareUrl}`;
       if (navigator.clipboard && window.isSecureContext) {
-        // We use a prompt if focus might be an issue, but usually a direct click is fine.
-        // We try the standard API first.
         await navigator.clipboard.writeText(textToCopy);
       } else {
-        throw new Error('Clipboard API unavailable');
-      }
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.warn('Clipboard API failed, using legacy execCommand', err);
-      try {
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
         textArea.style.position = "fixed";
@@ -75,19 +66,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        const successful = document.execCommand('copy');
+        document.execCommand('copy');
         document.body.removeChild(textArea);
-        if (successful) {
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-        } else {
-          // Final fallback: alert the URL so user can copy manually if all else fails
-          window.prompt("Kopieer de link hieronder:", textToCopy);
-        }
-      } catch (fallbackErr) {
-        console.error('All copy methods failed', fallbackErr);
-        window.prompt("Kopieer de link hieronder:", textToCopy);
       }
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Clipboard fallback failed', err);
     }
   };
 
