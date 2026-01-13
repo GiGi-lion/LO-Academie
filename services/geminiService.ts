@@ -41,6 +41,10 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       De gebruiker vraagt: "${userQuery}"
 
       Richtlijnen voor je antwoord:
+      - **GEBRUIK OPMAAK:** Maak je antwoord visueel aantrekkelijk.
+      - Gebruik **dikgedrukte tekst** voor namen van cursussen, datums en belangrijke begrippen.
+      - Gebruik lijstjes (bulletpoints) als je meerdere opties noemt.
+      - Gebruik kopjes (### Koptekst) om structuur aan te brengen als het antwoord lang is.
       - Als de gebruiker zoekt naar een cursus: Zoek in de JSON en beveel 1-3 opties aan. Noem titel, datum en locatie.
       - Als de gebruiker een algemene vraag stelt (bijv. "Wat is BSM?"): Gebruik Google Search om een korte, correcte definitie te geven en kijk DAN of er cursussen over zijn.
       - Als er geen cursus gevonden is: Zeg dit eerlijk, maar bied aan om algemene info over het onderwerp te zoeken of stel een alternatief voor.
@@ -72,9 +76,9 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       });
       
       if (uniqueLinks.size > 0) {
-        text += "\n\nBronnen:";
+        text += "\n\n### Bronnen\n";
         Array.from(uniqueLinks).forEach((link, index) => {
-           text += `\n[${index + 1}] ${link}`;
+           text += `- [Bron ${index + 1}](${link})\n`;
         });
       }
     }

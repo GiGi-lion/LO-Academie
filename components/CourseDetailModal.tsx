@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Course, Organizer } from '../types';
 import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download } from 'lucide-react';
 import { DEFAULT_IMAGES } from '../constants';
@@ -10,6 +10,15 @@ interface CourseDetailModalProps {
 }
 
 export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, isOpen, onClose }) => {
+  const [imageError, setImageError] = useState(false);
+
+  // Reset error state when a new course is opened
+  useEffect(() => {
+    if (isOpen) {
+      setImageError(false);
+    }
+  }, [isOpen, course?.id]);
+
   if (!isOpen || !course) return null;
 
   const isKVLO = course.organizer === Organizer.KVLO;
@@ -17,7 +26,9 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
   
   // Fallback image logic same as card
   const fallbackIndex = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_IMAGES.length;
-  const displayImage = course.imageUrl || DEFAULT_IMAGES[fallbackIndex];
+  
+  // Use fallback if no imageUrl is provided OR if loading failed
+  const displayImage = (!imageError && course.imageUrl) ? course.imageUrl : DEFAULT_IMAGES[fallbackIndex];
 
   const addToCalendar = () => {
     // Create ICS content
@@ -65,12 +76,13 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         </button>
 
         {/* Hero Image Section */}
-        <div className="relative h-64 shrink-0">
+        <div className="relative h-64 shrink-0 bg-slate-200">
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
           <img 
             src={displayImage} 
             alt={course.title} 
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
           <div className="absolute bottom-6 left-6 right-6 z-20">
              <div className="flex gap-2 mb-3">

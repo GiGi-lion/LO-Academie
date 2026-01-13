@@ -117,12 +117,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ courses, onSelectCou
                             <button 
                                 key={course.id}
                                 onClick={() => onSelectCourse(course)}
-                                className={`text-[10px] text-left px-2 py-1.5 rounded border truncate font-bold transition-all hover:scale-[1.02] shadow-sm
+                                className={`text-[10px] text-left px-2 py-1.5 rounded border truncate font-bold transition-all shadow-sm hover:shadow-md
                                     ${course.organizer === Organizer.KVLO 
-                                        ? 'bg-[#7AB800]/10 text-[#5a8700] border-[#7AB800]/20' 
+                                        ? 'bg-[#7AB800]/10 text-[#5a8700] border-[#7AB800]/20 hover:bg-[#7AB800]/20' 
                                         : course.organizer === Organizer.ALO
-                                            ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]/20'
-                                            : 'bg-purple-100 text-purple-700 border-purple-200'
+                                            ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]/20 hover:bg-[#00C1D4]/20'
+                                            : 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
                                     }`}
                                 title={course.title}
                             >
