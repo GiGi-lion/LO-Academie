@@ -22,7 +22,7 @@ export const INITIAL_COURSES: Course[] = [
     price: 150,
     description: 'Inschrijving geopend! Gezamenlijke studiedag op de ALO Amsterdam.',
     tags: ['Studiedag', 'Landelijk', 'Kennisdeling'],
-    url: 'https://www.alo.nl',
+    url: 'https://www.kvlo.nl/kalender/bijeenkomst/detail.aspx?Id=B9CEF428-BBB0-4AE1-8804-A6819124C2AF',
     imageUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&q=80&w=400',
     isNew: true
   },
