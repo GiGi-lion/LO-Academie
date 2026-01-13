@@ -23,7 +23,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Inschrijving geopend! Gezamenlijke studiedag op de ALO Amsterdam.',
     tags: ['Studiedag', 'Landelijk', 'Kennisdeling'],
     url: 'https://www.kvlo.nl/kalender/bijeenkomst/detail.aspx?Id=B9CEF428-BBB0-4AE1-8804-A6819124C2AF',
-    imageUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=400', // Grote Sporthal
     isNew: true
   },
   {
@@ -37,7 +37,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Voor docenten die starten met BSM of LO2.',
     tags: ['VO', 'BSM', 'LO2'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=400' // Atletiekbaan
   },
   {
     id: 'kvlo-coord-feb',
@@ -50,7 +50,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Basiscursus voor nieuwe vakgroepcoördinatoren in het PO.',
     tags: ['PO', 'Coördinator', 'Management'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=400' // Planning/Notitieboek
   },
   {
     id: 'alo-mrt-feb',
@@ -63,7 +63,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Aangeboden door ALO Nederland. Specialistische cursus MRT.',
     tags: ['PO', 'Zorg', 'MRT'],
     url: 'https://www.alo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1596464716127-f9a0639b9154?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1ef4d?auto=format&fit=crop&q=80&w=400' // Kind balanceren/spelen
   },
   {
     id: 'kvlo-ehbo-feb',
@@ -76,7 +76,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'EHBO cursus (en 11/2) bij Vlietland College.',
     tags: ['Afdeling', 'Veiligheid', 'EHBO'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&q=80&w=400' // Medische kit/EHBO
   },
   {
     id: 'alo-heedfulness-feb',
@@ -89,7 +89,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Aangeboden door ALO Nederland. Focus op energie en veerkracht voor docenten.',
     tags: ['Vitaliteit', 'Docent', 'Welzijn'],
     url: 'https://www.alo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1544367563-121910aa662f?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=400' // Natuur/Rust
   },
   {
     id: 'kvlo-symposium-mrt',
@@ -102,7 +102,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Schrijf je nu in! Alles over de veilige werkplek.',
     tags: ['Veiligheid', 'Symposium', 'Arbo'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1544531696-60173e6d8717?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=400' // Gymzaal materiaal/ringen
   },
   {
     id: 'kvlo-award-mrt',
@@ -115,7 +115,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Uitreiking van de Beweegrijke School Award voor het PO.',
     tags: ['PO', 'Award', 'Innovatie'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1567400358498-cfcb29724128?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?auto=format&fit=crop&q=80&w=400' // Trofee/Goud
   },
   {
     id: 'kvlo-insp-mrt',
@@ -128,7 +128,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Inspiratiedag bij Fontys Eindhoven.',
     tags: ['PO', 'Inspiratie', 'Praktijk'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&q=80&w=400' // Spelende kinderen/Kleurrijk
   },
   {
     id: 'kvlo-netwerk-mrt',
@@ -141,7 +141,7 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Netwerkbijeenkomst voor coördinatoren.',
     tags: ['PO', 'Netwerk', 'Coördinator'],
     url: 'https://www.kvlo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400' // Mensen in overleg
   },
   {
     id: 'alo-ruimte-mrt',
@@ -154,6 +154,6 @@ export const INITIAL_COURSES: Course[] = [
     description: 'Aangeboden door ALO Nederland. Bewegen buiten de gymzaal.',
     tags: ['Outdoor', 'Urban', 'Trends'],
     url: 'https://www.alo.nl',
-    imageUrl: 'https://images.unsplash.com/photo-1552674605-469523f54050?auto=format&fit=crop&q=80&w=400'
+    imageUrl: 'https://images.unsplash.com/photo-1552674605-469523f54050?auto=format&fit=crop&q=80&w=400' // Urban sportcourt
   }
 ];
