@@ -12,7 +12,7 @@ import { AdminLoginModal } from './components/AdminLoginModal';
 import { Course, SearchFilters, SortOption } from './types';
 import { REGIONS } from './constants';
 import { subscribeToCourses, saveCourseToDB, deleteCourseFromDB, isLiveMode, seedDatabase } from './services/db';
-import { Search, ChevronDown, Plus, Heart, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud } from 'lucide-react';
+import { Search, ChevronDown, Plus, Heart, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud, Tag } from 'lucide-react';
 
 type ViewMode = 'list' | 'calendar' | 'map';
 
@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('date-asc');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -46,6 +47,7 @@ const App: React.FC = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   
   const contentRef = useRef<HTMLDivElement>(null);
+  const tagsDropdownRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to DB updates
   useEffect(() => {
@@ -61,10 +63,42 @@ const App: React.FC = () => {
     localStorage.setItem('alo_kvlo_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  // Click outside handler for tags dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (tagsDropdownRef.current && !tagsDropdownRef.current.contains(event.target as Node)) {
+        setShowTags(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Extract unique tags from all courses for the filter list
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    courses.forEach(c => {
+      c.tags.forEach(t => tags.add(t));
+    });
+    return Array.from(tags).sort();
+  }, [courses]);
+
   const toggleFavorite = (id: string) => {
     setFavorites(prev => 
       prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
+  };
+
+  const toggleFilterTag = (tag: string) => {
+    setFilters(prev => {
+      const isSelected = prev.selectedTags.includes(tag);
+      return {
+        ...prev,
+        selectedTags: isSelected 
+          ? prev.selectedTags.filter(t => t !== tag) 
+          : [...prev.selectedTags, tag]
+      };
+    });
   };
 
   const showToast = (message: string) => {
@@ -233,7 +267,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="sm:col-span-2 flex items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
                 <span className="text-[10px] font-bold text-slate-400 uppercase mr-2">Van</span>
                 <input type="date" className="bg-transparent text-sm outline-none flex-1" value={filters.dateStart} onChange={e => setFilters({...filters, dateStart: e.target.value})} />
@@ -251,6 +285,72 @@ const App: React.FC = () => {
                 <option value="KVLO">KVLO</option>
                 <option value="ALO Nederland">ALO Nederland</option>
               </select>
+
+              {/* Tag Filter Dropdown */}
+              <div className="relative h-full" ref={tagsDropdownRef}>
+                 <button 
+                   onClick={() => setShowTags(!showTags)}
+                   className={`w-full h-full px-4 py-2.5 border rounded-xl text-sm font-medium flex items-center justify-between transition-colors outline-none
+                     ${showTags ? 'border-[#00C1D4] ring-2 ring-[#00C1D4]/10' : 'border-slate-100 bg-white hover:border-slate-300'}
+                     ${filters.selectedTags.length > 0 ? 'text-[#00C1D4]' : 'text-slate-700'}
+                   `}
+                 >
+                    <span className="truncate flex items-center gap-2">
+                        {filters.selectedTags.length > 0 ? (
+                           <>
+                             <Tag className="w-4 h-4" />
+                             {filters.selectedTags.length} geselecteerd
+                           </>
+                        ) : (
+                           <>
+                             <Tag className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-500">Onderwerp</span>
+                           </>
+                        )}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showTags ? 'rotate-180' : ''}`} />
+                 </button>
+
+                 {showTags && allTags.length > 0 && (
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white border border-slate-100 shadow-xl rounded-xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-50">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filter op onderwerp</span>
+                            {filters.selectedTags.length > 0 && (
+                                <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFilters(prev => ({...prev, selectedTags: []}));
+                                }}
+                                className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                >
+                                Wis selectie
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div className="max-h-64 overflow-y-auto custom-scrollbar -mr-2 pr-2">
+                           <div className="flex flex-wrap gap-2">
+                                {allTags.map(tag => {
+                                    const isSelected = filters.selectedTags.includes(tag);
+                                    return (
+                                    <button
+                                        key={tag}
+                                        onClick={() => toggleFilterTag(tag)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border text-left
+                                        ${isSelected 
+                                            ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]' 
+                                            : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-300 hover:bg-white'
+                                        }`}
+                                    >
+                                        {tag}
+                                    </button>
+                                    );
+                                })}
+                           </div>
+                        </div>
+                    </div>
+                 )}
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-2">
