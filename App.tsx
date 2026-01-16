@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CourseCard } from './components/CourseCard';
+import { SkeletonCard } from './components/SkeletonCard';
+import { FilterSidebar } from './components/FilterSidebar';
 import { AddCourseModal } from './components/AddCourseModal';
 import { CourseDetailModal } from './components/CourseDetailModal';
 import { AIAssistant } from './components/AIAssistant';
@@ -10,9 +12,8 @@ import { CalendarView } from './components/CalendarView';
 import { MapView } from './components/MapView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { Course, SearchFilters, SortOption } from './types';
-import { REGIONS } from './constants';
 import { subscribeToCourses, saveCourseToDB, deleteCourseFromDB, isLiveMode, seedDatabase } from './services/db';
-import { Search, ChevronDown, Plus, Heart, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud, Tag } from 'lucide-react';
+import { Plus, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud } from 'lucide-react';
 
 type ViewMode = 'list' | 'calendar' | 'map';
 
@@ -35,7 +36,6 @@ const App: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('date-asc');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showTags, setShowTags] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -47,34 +47,24 @@ const App: React.FC = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   
   const contentRef = useRef<HTMLDivElement>(null);
-  const tagsDropdownRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to DB updates
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = subscribeToCourses((newCourses) => {
-      setCourses(newCourses);
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
+    // Simulate slight network delay to show off Skeleton UI
+    setTimeout(() => {
+        const unsubscribe = subscribeToCourses((newCourses) => {
+        setCourses(newCourses);
+        setIsLoading(false);
+        });
+    }, 800); 
   }, []);
 
   useEffect(() => {
     localStorage.setItem('alo_kvlo_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  // Click outside handler for tags dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (tagsDropdownRef.current && !tagsDropdownRef.current.contains(event.target as Node)) {
-        setShowTags(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Extract unique tags from all courses for the filter list
+  // Extract unique tags
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     courses.forEach(c => {
@@ -87,18 +77,6 @@ const App: React.FC = () => {
     setFavorites(prev => 
       prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
-  };
-
-  const toggleFilterTag = (tag: string) => {
-    setFilters(prev => {
-      const isSelected = prev.selectedTags.includes(tag);
-      return {
-        ...prev,
-        selectedTags: isSelected 
-          ? prev.selectedTags.filter(t => t !== tag) 
-          : [...prev.selectedTags, tag]
-      };
-    });
   };
 
   const showToast = (message: string) => {
@@ -121,20 +99,13 @@ const App: React.FC = () => {
   };
 
   const handleSeedDatabase = async () => {
-    if(!window.confirm("Dit zal alle voorbeeld-scholingen uploaden naar je database (bestaande items met dezelfde ID worden overschreven). Wil je doorgaan?")) {
-      return;
-    }
-
+    if(!window.confirm("Dit zal alle voorbeeld-scholingen uploaden naar je database. Wil je doorgaan?")) return;
     setIsSeeding(true);
     try {
-      console.log("Starten met uploaden van data...");
       await seedDatabase();
-      console.log("Upload voltooid.");
-      showToast("✅ Database succesvol gevuld met voorbeelden!");
+      showToast("✅ Database succesvol gevuld!");
     } catch (e: any) {
-      console.error("Fout tijdens uploaden:", e);
-      showToast("❌ Fout bij uploaden: " + (e.message || "Onbekende fout"));
-      alert("Er ging iets mis bij het uploaden naar de database. Check de console voor details.\n\nMelding: " + (e.message || "Geen details"));
+      showToast("❌ Fout bij uploaden");
     } finally {
       setIsSeeding(false);
     }
@@ -179,7 +150,6 @@ const App: React.FC = () => {
       await saveCourseToDB(savedCourse);
       showToast(courseToEdit ? "Scholing bijgewerkt" : "Scholing toegevoegd");
     } catch (e) {
-      console.error(e);
       showToast("Er ging iets mis bij het opslaan");
     }
   };
@@ -191,7 +161,6 @@ const App: React.FC = () => {
         showToast("Scholing verwijderd");
         setIsModalOpen(false);
       } catch (e) {
-        console.error(e);
         showToast("Kan scholing niet verwijderen");
       }
     }
@@ -220,238 +189,140 @@ const App: React.FC = () => {
       
       <Hero courseCount={courses.length} onScrollToContent={() => contentRef.current?.scrollIntoView({ behavior: 'smooth' })} />
 
-      <main ref={contentRef} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 md:pb-16">
+      <main ref={contentRef} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 md:pb-16 relative">
         
-        {/* Mobile Action Bar */}
-        <div className="md:hidden mb-4 flex gap-2">
-            <button 
-                onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className="flex-1 bg-white border border-slate-200 p-3 rounded-xl flex items-center justify-center gap-2 font-bold text-slate-700 shadow-sm"
-            >
-                <SlidersHorizontal className="w-5 h-5 text-[#00C1D4]" />
-                {showMobileFilters ? 'Filters Sluiten' : 'Zoekfilters'}
-            </button>
-            {isAdmin && (
-              <button onClick={openAddModal} className="bg-[#7AB800] text-white p-3 rounded-xl shadow-lg">
-                <Plus className="w-6 h-6" />
-              </button>
-            )}
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-10 md:-mt-12 relative z-20 transition-all ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
-          <div className="space-y-5">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <input 
-                    type="text" 
-                    placeholder="Zoek scholing..." 
-                    className="w-full pl-12 pr-4 py-3 border border-slate-100 rounded-xl focus:ring-2 focus:ring-[#00C1D4] outline-none bg-slate-50"
-                    value={filters.query}
-                    onChange={e => setFilters({...filters, query: e.target.value})}
-                  />
-              </div>
-              <div className="relative md:w-56">
-                 <select 
-                   className="w-full h-full pl-4 pr-10 py-3 border border-slate-100 rounded-xl appearance-none bg-white text-sm font-medium text-slate-700 cursor-pointer"
-                   value={sortOption}
-                   onChange={e => setSortOption(e.target.value as SortOption)}
-                 >
-                   <option value="date-asc">Datum (Eerstvolgende)</option>
-                   <option value="date-desc">Datum (Nieuwste toegevoegd)</option>
-                   <option value="price-asc">Prijs (Laag - Hoog)</option>
-                   <option value="price-desc">Prijs (Hoog - Laag)</option>
-                 </select>
-                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="sm:col-span-2 flex items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase mr-2">Van</span>
-                <input type="date" className="bg-transparent text-sm outline-none flex-1" value={filters.dateStart} onChange={e => setFilters({...filters, dateStart: e.target.value})} />
-                <span className="text-[10px] font-bold text-slate-400 uppercase mx-2">Tot</span>
-                <input type="date" className="bg-transparent text-sm outline-none flex-1" value={filters.dateEnd} onChange={e => setFilters({...filters, dateEnd: e.target.value})} />
-              </div>
-
-              <select className="px-4 py-2.5 border border-slate-100 rounded-xl bg-white text-sm" value={filters.region} onChange={e => setFilters({...filters, region: e.target.value})}>
-                <option value="Alle">Alle Regio's</option>
-                {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-
-              <select className="px-4 py-2.5 border border-slate-100 rounded-xl bg-white text-sm" value={filters.organizer} onChange={e => setFilters({...filters, organizer: e.target.value})}>
-                <option value="Alle">Alle Organisatoren</option>
-                <option value="KVLO">KVLO</option>
-                <option value="ALO Nederland">ALO Nederland</option>
-              </select>
-
-              {/* Tag Filter Dropdown */}
-              <div className="relative h-full" ref={tagsDropdownRef}>
-                 <button 
-                   onClick={() => setShowTags(!showTags)}
-                   className={`w-full h-full px-4 py-2.5 border rounded-xl text-sm font-medium flex items-center justify-between transition-colors outline-none
-                     ${showTags ? 'border-[#00C1D4] ring-2 ring-[#00C1D4]/10' : 'border-slate-100 bg-white hover:border-slate-300'}
-                     ${filters.selectedTags.length > 0 ? 'text-[#00C1D4]' : 'text-slate-700'}
-                   `}
-                 >
-                    <span className="truncate flex items-center gap-2">
-                        {filters.selectedTags.length > 0 ? (
-                           <>
-                             <Tag className="w-4 h-4" />
-                             {filters.selectedTags.length} geselecteerd
-                           </>
-                        ) : (
-                           <>
-                             <Tag className="w-4 h-4 text-slate-400" />
-                             <span className="text-slate-500">Onderwerp</span>
-                           </>
-                        )}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showTags ? 'rotate-180' : ''}`} />
-                 </button>
-
-                 {showTags && allTags.length > 0 && (
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-white border border-slate-100 shadow-xl rounded-xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-50">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filter op onderwerp</span>
-                            {filters.selectedTags.length > 0 && (
-                                <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setFilters(prev => ({...prev, selectedTags: []}));
-                                }}
-                                className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors"
-                                >
-                                Wis selectie
-                                </button>
-                            )}
-                        </div>
-                        
-                        <div className="max-h-64 overflow-y-auto custom-scrollbar -mr-2 pr-2">
-                           <div className="flex flex-wrap gap-2">
-                                {allTags.map(tag => {
-                                    const isSelected = filters.selectedTags.includes(tag);
-                                    return (
-                                    <button
-                                        key={tag}
-                                        onClick={() => toggleFilterTag(tag)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border text-left
-                                        ${isSelected 
-                                            ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]' 
-                                            : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-300 hover:bg-white'
-                                        }`}
-                                    >
-                                        {tag}
-                                    </button>
-                                    );
-                                })}
-                           </div>
-                        </div>
-                    </div>
-                 )}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-               <div className="flex gap-2">
-                 <button
-                  onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                    showOnlyFavorites ? 'bg-red-50 text-red-500 border-red-100' : 'bg-white text-slate-500 border-slate-200'
-                  }`}
+        {/* Mobile Filter & Search Button (Fixed Bottom Left/Center) */}
+        {!showMobileFilters && (
+            <div className="md:hidden fixed bottom-6 left-6 right-auto z-50">
+                <button 
+                    onClick={() => setShowMobileFilters(true)}
+                    className="bg-slate-900 text-white px-5 py-4 rounded-full shadow-2xl flex items-center gap-2 font-bold transition-transform active:scale-95 border border-slate-700"
                 >
-                  <Heart className={`w-3.5 h-3.5 ${showOnlyFavorites ? 'fill-red-500' : ''}`} />
-                  Mijn Favorieten ({favorites.length})
+                    <SlidersHorizontal className="w-5 h-5 text-[#00C1D4]" />
+                    <span>Filters</span>
                 </button>
-                {/* Database Status Indicator */}
-                {!isLiveMode() ? (
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100" title="Voeg Firebase config toe in services/db.ts om live te gaan">
-                    <WifiOff className="w-3.5 h-3.5" />
-                    Demo Modus
+            </div>
+        )}
+
+        {/* Mobile Admin Add Button */}
+        {isAdmin && (
+             <div className="md:hidden fixed bottom-6 left-32 z-50">
+                 <button onClick={openAddModal} className="bg-[#7AB800] text-white p-4 rounded-full shadow-2xl">
+                    <Plus className="w-6 h-6" />
+                 </button>
+             </div>
+        )}
+
+        <div className="flex gap-8 items-start">
+          
+          {/* LEFT COLUMN: Sidebar Filters */}
+          <FilterSidebar 
+            filters={filters}
+            setFilters={setFilters}
+            sortOption={sortOption}
+            setSortOption={setSortOption}
+            allTags={allTags}
+            favoritesCount={favorites.length}
+            showOnlyFavorites={showOnlyFavorites}
+            setShowOnlyFavorites={setShowOnlyFavorites}
+            isOpenMobile={showMobileFilters}
+            closeMobile={() => setShowMobileFilters(false)}
+            resultCount={filteredAndSortedCourses.length}
+          />
+
+          {/* RIGHT COLUMN: Content */}
+          <div className="flex-1 min-w-0">
+            
+            {/* View Toggle & Admin Bar (Desktop) */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                
+               {/* Admin Status */}
+               {isAdmin ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-[#7AB800] rounded-lg border border-green-100">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">Beheer</span>
+                    </div>
+                    {isLiveMode() && (
+                      <button onClick={handleSeedDatabase} disabled={isSeeding} className="text-xs font-bold text-slate-500 hover:text-[#00C1D4] flex items-center gap-1">
+                        <UploadCloud className="w-3 h-3" /> Upload Demo
+                      </button>
+                    )}
+                    <button onClick={openAddModal} className="text-xs font-bold text-[#7AB800] hover:underline flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Toevoegen
+                    </button>
                   </div>
-                ) : (
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-green-50 text-green-600 border border-green-100">
-                    <Wifi className="w-3.5 h-3.5" />
-                    Live Verbonden
+               ) : (
+                  // DB Status for non-admins
+                  <div className="flex items-center">
+                    {!isLiveMode() ? (
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-500/80" title="Demo Modus">
+                            <WifiOff className="w-3.5 h-3.5" />
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-xs font-bold text-green-500/80">
+                            <Wifi className="w-3.5 h-3.5" />
+                        </div>
+                    )}
+                  </div>
+               )}
+
+               {/* View Switcher */}
+               <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex ml-auto">
+                  <button onClick={() => setViewMode('list')} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-[#00C1D4]/10 text-[#00C1D4]' : 'text-slate-400 hover:bg-slate-50'}`}>
+                    <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Lijst</span>
+                  </button>
+                  <button onClick={() => setViewMode('calendar')} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-[#7AB800]/10 text-[#7AB800]' : 'text-slate-400 hover:bg-slate-50'}`}>
+                    <CalendarIcon className="w-4 h-4" /> <span className="hidden sm:inline">Kalender</span>
+                  </button>
+                  <button onClick={() => setViewMode('map')} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'map' ? 'bg-purple-100 text-purple-600' : 'text-slate-400 hover:bg-slate-50'}`}>
+                    <MapIcon className="w-4 h-4" /> <span className="hidden sm:inline">Kaart</span>
+                  </button>
+               </div>
+            </div>
+
+            {/* Content Area */}
+            {isLoading ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+               </div>
+            ) : (
+              <>
+                {viewMode === 'list' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredAndSortedCourses.length > 0 ? (
+                      filteredAndSortedCourses.map(course => (
+                        <CourseCard 
+                          key={course.id} 
+                          course={course} 
+                          isFavorite={favorites.includes(course.id)}
+                          onToggleFavorite={toggleFavorite}
+                          onClick={setSelectedCourse}
+                          isAdmin={isAdmin}
+                          onEdit={() => { setCourseToEdit(course); setIsModalOpen(true); }}
+                        />
+                      ))
+                    ) : (
+                      <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 border-dashed">
+                        <div className="inline-flex p-4 bg-slate-50 rounded-full mb-4 text-slate-300">
+                            <SlidersHorizontal className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-1">Geen scholingen gevonden</h3>
+                        <p className="text-sm text-slate-500">Probeer je filters aan te passen.</p>
+                      </div>
+                    )}
                   </div>
                 )}
-               </div>
-              
-              <div className="hidden md:flex bg-slate-100 p-1 rounded-lg">
-                <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white shadow-sm text-[#00C1D4]' : 'text-slate-400'}`}><LayoutGrid className="w-4 h-4" /></button>
-                <button onClick={() => setViewMode('calendar')} className={`p-2 rounded-md ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[#7AB800]' : 'text-slate-400'}`}><CalendarIcon className="w-4 h-4" /></button>
-                <button onClick={() => setViewMode('map')} className={`p-2 rounded-md ${viewMode === 'map' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400'}`}><MapIcon className="w-4 h-4" /></button>
-              </div>
-            </div>
+
+                {viewMode === 'calendar' && <CalendarView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
+                {viewMode === 'map' && <MapView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
+              </>
+            )}
+
           </div>
         </div>
-
-        {/* Admin Quick Action Bar */}
-        {isAdmin && (
-          <div className="mb-8 p-6 bg-white border-2 border-dashed border-[#7AB800]/40 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-green-500/5 animate-in slide-in-from-top duration-500">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-50 rounded-2xl text-[#7AB800]">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Beheerdersmodus Actief</h4>
-                <p className="text-xs text-slate-500 font-medium">Beheer bestaande scholingen of voeg een nieuwe toe.</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              {isLiveMode() && (
-                <button 
-                  onClick={handleSeedDatabase}
-                  disabled={isSeeding}
-                  className="bg-white border-2 border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <UploadCloud className="w-5 h-5" /> {isSeeding ? 'Bezig...' : 'Upload Demo Data'}
-                </button>
-              )}
-              <button 
-                onClick={openAddModal}
-                className="bg-[#7AB800] text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#6da500] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-green-500/20 flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" /> Scholing Toevoegen
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Results Container */}
-        {isLoading ? (
-          <div className="py-20 flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7AB800]"></div>
-          </div>
-        ) : viewMode === 'list' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredAndSortedCourses.length > 0 ? (
-              filteredAndSortedCourses.map(course => (
-                <CourseCard 
-                  key={course.id} 
-                  course={course} 
-                  isFavorite={favorites.includes(course.id)}
-                  onToggleFavorite={toggleFavorite}
-                  onClick={setSelectedCourse}
-                  isAdmin={isAdmin}
-                  onEdit={() => { setCourseToEdit(course); setIsModalOpen(true); }}
-                />
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center">
-                 <div className="inline-flex p-6 bg-slate-100 rounded-full mb-4 text-slate-400">
-                    <Search className="w-10 h-10" />
-                 </div>
-                 <h3 className="text-xl font-bold text-slate-800 mb-2">Geen scholingen gevonden</h3>
-                 <p className="text-slate-500">Pas je filters aan of probeer een andere zoekterm.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isLoading && viewMode === 'calendar' && <CalendarView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
-        {!isLoading && viewMode === 'map' && <MapView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
       </main>
 
       <footer className="bg-white border-t border-slate-100 py-12 mt-auto">
@@ -459,9 +330,6 @@ const App: React.FC = () => {
           <p className="text-slate-400 text-sm font-medium">
             &copy; {new Date().getFullYear()} LO Academie - Een initiatief van KVLO & ALO Nederland.
           </p>
-          <div className="mt-2 text-xs text-slate-300">
-            Status: {isLiveMode() ? 'Live Database Verbonden' : 'Lokale Demo Modus'}
-          </div>
         </div>
       </footer>
 
