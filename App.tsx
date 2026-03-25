@@ -30,7 +30,7 @@ const App: React.FC = () => {
     region: 'Alle',
     dateStart: '',
     dateEnd: '',
-    organizer: 'Alle',
+    organizers: [],
     selectedTags: []
   });
   
@@ -132,7 +132,7 @@ const App: React.FC = () => {
 
     let result = courses.filter(course => {
       // Verberg verlopen scholingen tenzij in beheer-modus
-      if (course.date < todayStr && !isAdmin) return false;
+      if (course.date && course.date.trim() !== '' && course.date < todayStr && !isAdmin) return false;
 
       const matchesQuery = 
         course.title.toLowerCase().includes(filters.query.toLowerCase()) || 
@@ -140,9 +140,10 @@ const App: React.FC = () => {
         course.tags.some(tag => tag.toLowerCase().includes(filters.query.toLowerCase()));
       
       const matchesRegion = filters.region === 'Alle' || course.region === filters.region;
-      const matchesDateStart = !filters.dateStart || course.date >= filters.dateStart;
-      const matchesDateEnd = !filters.dateEnd || course.date <= filters.dateEnd;
-      const matchesOrganizer = filters.organizer === 'Alle' || course.organizer === filters.organizer;
+      const matchesDateStart = !filters.dateStart || (course.date && course.date >= filters.dateStart);
+      const matchesDateEnd = !filters.dateEnd || (course.date && course.date <= filters.dateEnd);
+      const matchesOrganizer = filters.organizers.length === 0 || 
+        (course.organizers && course.organizers.some(org => filters.organizers.includes(org)));
       const matchesTags = filters.selectedTags.length === 0 || 
         filters.selectedTags.some(tag => course.tags.includes(tag));
       const matchesFavorite = !showOnlyFavorites || favorites.includes(course.id);
@@ -151,10 +152,22 @@ const App: React.FC = () => {
     });
 
     result.sort((a, b) => {
-      if (sortOption === 'date-asc') return a.date.localeCompare(b.date);
-      if (sortOption === 'date-desc') return b.date.localeCompare(a.date);
-      if (sortOption === 'price-asc') return a.price - b.price;
-      if (sortOption === 'price-desc') return b.price - a.price;
+      const hasDateA = a.date && a.date.trim() !== '';
+      const hasDateB = b.date && b.date.trim() !== '';
+
+      if (hasDateA && hasDateB) {
+        if (sortOption === 'date-asc') return a.date!.localeCompare(b.date!);
+        if (sortOption === 'date-desc') return b.date!.localeCompare(a.date!);
+        if (sortOption === 'price-asc') return a.price - b.price;
+        if (sortOption === 'price-desc') return b.price - a.price;
+      } else if (hasDateA && !hasDateB) {
+        return -1; // A comes first
+      } else if (!hasDateA && hasDateB) {
+        return 1; // B comes first
+      } else {
+        // Both no date, sort alphabetically
+        return a.title.localeCompare(b.title);
+      }
       return 0;
     });
 

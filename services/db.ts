@@ -2,19 +2,29 @@ import { Course } from '../types';
 import { INITIAL_COURSES } from '../constants';
 import { supabase } from './supabase';
 
-const mapFromSupabase = (row: any): Course => ({
-  id: row.id,
-  title: row.title,
-  description: row.description,
-  date: row.date,
-  price: row.price,
-  location: row.location || 'Onbekend',
-  region: row.region,
-  organizer: row.organizer,
-  tags: row.tags || [],
-  url: row.url || '',
-  imageUrl: row.imageUrl || row.image_url || ''
-});
+const mapFromSupabase = (row: any): Course => {
+  let organizersArray: string[] = [];
+  if (row.organizers) {
+    organizersArray = Array.isArray(row.organizers) ? row.organizers : [row.organizers];
+  } else if (row.organizer) {
+    organizersArray = typeof row.organizer === 'string' ? row.organizer.split(',').map((s: string) => s.trim()) : [row.organizer];
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    date: row.date,
+    price: row.price,
+    sessions: row.sessions,
+    location: row.location || 'Onbekend',
+    region: row.region,
+    organizers: organizersArray,
+    tags: row.tags || [],
+    url: row.url || '',
+    imageUrl: row.imageUrl || row.image_url || ''
+  };
+};
 
 const mapToSupabase = (course: Course) => {
   const data: any = {
@@ -22,9 +32,10 @@ const mapToSupabase = (course: Course) => {
     description: course.description,
     date: course.date,
     price: course.price,
+    sessions: course.sessions,
     location: course.location,
     region: course.region,
-    organizer: course.organizer,
+    organizer: course.organizers ? course.organizers.join(', ') : '',
     tags: course.tags,
     url: course.url,
     imageUrl: course.imageUrl

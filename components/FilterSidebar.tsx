@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Calendar, Tag, Heart, ChevronDown, ChevronUp, X, RotateCcw, Filter, ArrowUpDown, Building2 } from 'lucide-react';
 import { REGIONS } from '../constants';
-import { SearchFilters, SortOption } from '../types';
+import { SearchFilters, SortOption, ORGANIZERS } from '../types';
 
 interface FilterSidebarProps {
   filters: SearchFilters;
@@ -65,7 +65,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
       region: 'Alle',
       dateStart: '',
       dateEnd: '',
-      organizer: 'Alle',
+      organizers: [],
       selectedTags: []
     });
     setShowOnlyFavorites(false);
@@ -213,19 +213,24 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
       {/* 5. Organisator */}
       <FilterSection title="Organisator" icon={<Building2 className="w-4 h-4 text-purple-500" />} isOpenDefault={false}>
          <div className="flex flex-col gap-2 mt-2">
-            {['Alle', 'KVLO', 'ALO Nederland'].map(org => (
+            {ORGANIZERS.map(org => (
                <label key={org} className="flex items-center gap-3 cursor-pointer group p-1 hover:bg-slate-50 rounded-lg">
-                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${filters.organizer === org ? 'bg-[#7AB800] border-[#7AB800]' : 'bg-white border-slate-300 group-hover:border-[#7AB800]'}`}>
-                      {filters.organizer === org && <div className="w-2 h-2 bg-white rounded-sm" />}
+                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${filters.organizers.includes(org) ? 'bg-[#7AB800] border-[#7AB800]' : 'bg-white border-slate-300 group-hover:border-[#7AB800]'}`}>
+                      {filters.organizers.includes(org) && <div className="w-2 h-2 bg-white rounded-sm" />}
                   </div>
                   <input 
-                    type="radio" 
-                    name="organizer" 
+                    type="checkbox" 
                     className="hidden"
-                    checked={filters.organizer === org}
-                    onChange={() => setFilters({...filters, organizer: org})}
+                    checked={filters.organizers.includes(org)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFilters({...filters, organizers: [...filters.organizers, org]});
+                      } else {
+                        setFilters({...filters, organizers: filters.organizers.filter(o => o !== org)});
+                      }
+                    }}
                   />
-                  <span className={`text-sm font-medium ${filters.organizer === org ? 'text-slate-800' : 'text-slate-500'}`}>{org === 'Alle' ? 'Alles tonen' : org}</span>
+                  <span className={`text-sm font-medium ${filters.organizers.includes(org) ? 'text-slate-800' : 'text-slate-500'}`}>{org}</span>
                </label>
             ))}
          </div>

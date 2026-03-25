@@ -1,8 +1,67 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Course } from '../types';
 
 // We initialiseren de client NIET hier, maar pas in de functie. 
 // Dit voorkomt dat de app crasht bij het laden (White Screen) als de API Key mist of de env nog niet geladen is.
+
+export const extractCourseFromUrl = async (url: string): Promise<Partial<Course> | null> => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+        console.warn("Gemini API Key ontbreekt.");
+        return null;
+    }
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+
+    const prompt = `
+      Je bent een expert in het extraheren van cursusinformatie uit webpagina's.
+      Lees de informatie op de volgende webpagina: ${url}
+      
+      Extraheer de volgende gegevens voor een scholing/cursus:
+      - title: De titel van de scholing
+      - description: Een duidelijke omschrijving van de scholing. BELANGRIJK: Als uit de originele tekst niet direct duidelijk is waarom deze scholing relevant is voor het beroep of werkveld van bewegingsonderwijs (PO) of lichamelijke opvoeding (VO), voeg dan zelf een of twee zinnen toe aan de omschrijving om deze relevantie te verduidelijken.
+      - date: De startdatum in YYYY-MM-DD formaat. Als er geen specifieke datum is, laat dit veld dan leeg ("").
+      - location: De locatie waar de scholing plaatsvindt
+      - price: De prijs in euro's (alleen het getal, bijv. 150)
+      - sessions: Het aantal bijeenkomsten (een getal, standaard 1)
+      - organizers: Een array van organisatoren. Kies uit: "KVLO", "ALO Nederland", "Fontys", "HAN", "Hanze", "HHS", "HvA", "Windesheim". Als er een andere organisator is, voeg die dan ook toe aan de array.
+      - region: De regio (bijv. "Noord", "Oost", "Zuid", "West", "Midden", "Landelijk")
+      - tags: Een array van 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag, bijv. "PO", "VO", "Didactiek", "BSM").
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ urlContext: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+            date: { type: Type.STRING },
+            location: { type: Type.STRING },
+            price: { type: Type.NUMBER },
+            sessions: { type: Type.NUMBER },
+            organizers: { type: Type.ARRAY, items: { type: Type.STRING } },
+            region: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["title", "description", "location", "price", "sessions", "organizers", "region", "tags"]
+        }
+      }
+    });
+
+    const text = response.text || "";
+    const data = JSON.parse(text);
+    return data;
+  } catch (error) {
+    console.error("Gemini API Error (extractCourseFromUrl):", error);
+    return null;
+  }
+};
 
 export const suggestTags = async (title: string, description: string): Promise<string[]> => {
   try {

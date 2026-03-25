@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Course, Organizer } from '../types';
-import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download } from 'lucide-react';
+import { Course, sortOrganizers } from '../types';
+import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download, Clock } from 'lucide-react';
 import { DEFAULT_IMAGES, formatPrice } from '../constants';
 
 interface CourseDetailModalProps {
@@ -21,8 +21,8 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
 
   if (!isOpen || !course) return null;
 
-  const isKVLO = course.organizer === Organizer.KVLO;
-  const isALO = course.organizer === Organizer.ALO;
+  const isKVLO = course.organizers?.includes('KVLO');
+  const isALO = course.organizers?.includes('ALO Nederland');
   
   // Fallback image logic same as card
   const fallbackIndex = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_IMAGES.length;
@@ -31,9 +31,22 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
   const displayImage = (!imageError && course.imageUrl) ? course.imageUrl : DEFAULT_IMAGES[fallbackIndex];
 
   const addToCalendar = () => {
+    if (!course.date || course.date.trim() === '') {
+      alert("Kan niet toevoegen aan agenda: geen datum bekend.");
+      return;
+    }
     // Create ICS content
-    const startTime = course.date.replace(/-/g, '') + 'T090000'; // Assuming 09:00 start for simplicity
-    const endTime = course.date.replace(/-/g, '') + 'T170000';   // Assuming 17:00 end
+    const startDate = new Date(course.date);
+    
+    const formatIcsDate = (date: Date) => date.toISOString().split('T')[0].replace(/-/g, '');
+    
+    const startTime = formatIcsDate(startDate) + 'T090000'; // Assuming 09:00 start for simplicity
+    const endTime = formatIcsDate(startDate) + 'T170000';   // Assuming 17:00 end
+    
+    let description = `${course.description}\\n\\nOrganisator: ${sortOrganizers(course.organizers).join(', ')}\\nMeer info: ${course.url}`;
+    if (course.sessions && course.sessions > 1) {
+      description += `\\n\\nLet op: Dit is de eerste van in totaal ${course.sessions} bijeenkomsten.`;
+    }
     
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -42,7 +55,7 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
       `DTSTART:${startTime}`,
       `DTEND:${endTime}`,
       `SUMMARY:${course.title}`,
-      `DESCRIPTION:${course.description}\\n\\nOrganisator: ${course.organizer}\\nMeer info: ${course.url}`,
+      `DESCRIPTION:${description}`,
       `LOCATION:${course.location}`,
       'END:VEVENT',
       'END:VCALENDAR'
@@ -85,11 +98,13 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
             onError={() => setImageError(true)}
           />
           <div className="absolute bottom-6 left-6 right-6 z-20">
-             <div className="flex gap-2 mb-3">
-                <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border backdrop-blur-sm bg-white/95 
-                  ${isKVLO ? 'text-[#5a8700] border-[#7AB800]' : isALO ? 'text-[#008d9b] border-[#00C1D4]' : 'text-purple-700 border-purple-200'}`}>
-                  {course.organizer}
-                </span>
+             <div className="flex flex-wrap gap-2 mb-3">
+                {sortOrganizers(course.organizers).map((org, index) => (
+                  <span key={index} className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border backdrop-blur-sm bg-white/95 
+                    ${org === 'KVLO' ? 'text-[#5a8700] border-[#7AB800]' : org === 'ALO Nederland' ? 'text-[#008d9b] border-[#00C1D4]' : 'text-purple-700 border-purple-200'}`}>
+                    {org}
+                  </span>
+                ))}
                 {course.isNew && (
                   <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-red-500 text-white shadow-lg shadow-red-500/30">
                       Nieuw
@@ -114,7 +129,12 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase">Datum</p>
                 <p className="font-semibold text-slate-800">
-                  {new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  {course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Datum onbekend'}
+                  {course.sessions && course.sessions > 0 && (
+                    <span className="ml-2 text-sm text-slate-500 font-normal">
+                      ({course.sessions} {course.sessions === 1 ? 'bijeenkomst' : 'bijeenkomsten'})
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -147,7 +167,7 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase">Organisator</p>
-                <p className="font-semibold text-slate-800">{course.organizer}</p>
+                <p className="font-semibold text-slate-800">{sortOrganizers(course.organizers).join(', ')}</p>
               </div>
             </div>
           </div>
@@ -184,13 +204,17 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         {/* Footer Actions */}
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
            
-           <button 
-             onClick={addToCalendar}
-             className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-[#00C1D4] hover:text-[#00C1D4] transition-colors flex items-center justify-center gap-2 group"
-           >
-             <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-             Zet in Agenda
-           </button>
+           {course.date && course.date.trim() !== '' ? (
+             <button 
+               onClick={addToCalendar}
+               className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-[#00C1D4] hover:text-[#00C1D4] transition-colors flex items-center justify-center gap-2 group"
+             >
+               <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+               Zet in Agenda
+             </button>
+           ) : (
+             <div />
+           )}
 
            <div className="flex gap-3 w-full sm:w-auto">
              <button 

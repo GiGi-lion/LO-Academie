@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Course, Organizer } from '../types';
-import { MapPin, Calendar, ArrowRight, Heart, Share2, Check, Pencil } from 'lucide-react';
+import { Course, sortOrganizers } from '../types';
+import { MapPin, Calendar, ArrowRight, Heart, Share2, Check, Pencil, Clock } from 'lucide-react';
 import { DEFAULT_IMAGES, formatPrice } from '../constants';
 
 interface CourseCardProps {
@@ -16,8 +16,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
   const [hasError, setHasError] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   
-  const isKVLO = course.organizer === Organizer.KVLO;
-  const isALO = course.organizer === Organizer.ALO;
+  const isKVLO = course.organizers?.includes('KVLO');
+  const isALO = course.organizers?.includes('ALO Nederland');
 
   useEffect(() => {
     setHasError(false);
@@ -134,18 +134,36 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         
-        <div className="absolute bottom-4 left-4 z-20">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-white/90 border shadow-sm ${badgeColor}`}>
-                {course.organizer}
-            </span>
+        <div className="absolute bottom-4 left-4 z-20 flex flex-wrap gap-1">
+            {sortOrganizers(course.organizers).map((org, index) => (
+              <span key={index} className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-white/90 border shadow-sm ${badgeColor}`}>
+                  {org}
+              </span>
+            ))}
         </div>
       </div>
 
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            <Calendar className="w-3 h-3" />
-            {new Date(course.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
-            <span className="mx-1">•</span>
+            {course.date && course.date.trim() !== '' ? (
+              <>
+                <Calendar className="w-3 h-3" />
+                {new Date(course.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </>
+            ) : (
+              <>
+                <Calendar className="w-3 h-3" />
+                Datum onbekend
+              </>
+            )}
+            {course.sessions && course.sessions > 0 && (
+              <>
+                <span className="mx-0.5">•</span>
+                <Clock className="w-3 h-3" />
+                {course.sessions} {course.sessions === 1 ? 'bijeenkomst' : 'bijeenkomsten'}
+              </>
+            )}
+            <span className="mx-0.5">•</span>
             <MapPin className="w-3 h-3" />
             {course.location}
         </div>

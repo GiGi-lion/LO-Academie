@@ -1,14 +1,30 @@
-export enum Organizer {
-  KVLO = 'KVLO',
-  ALO = 'ALO Nederland',
-  JOINT = 'Gezamenlijk'
-}
+export const ORGANIZERS = [
+  'KVLO',
+  'ALO Nederland',
+  'Fontys',
+  'HAN',
+  'Hanze',
+  'HHS',
+  'HvA',
+  'Windesheim'
+];
+
+export const sortOrganizers = (organizers: string[] | undefined): string[] => {
+  if (!organizers) return [];
+  return [...organizers].sort((a, b) => {
+    const priorityA = a === 'KVLO' ? 1 : a === 'ALO Nederland' ? 2 : 3;
+    const priorityB = b === 'KVLO' ? 1 : b === 'ALO Nederland' ? 2 : 3;
+    if (priorityA !== priorityB) return priorityA - priorityB;
+    return a.localeCompare(b);
+  });
+};
 
 export interface Course {
   id: string;
   title: string;
-  organizer: Organizer;
-  date: string; // ISO date string
+  organizers: string[];
+  date?: string; // ISO date string, optional
+  sessions?: number; // Number of meetings/sessions
   location: string;
   region: string;
   price: number;
@@ -24,7 +40,7 @@ export interface SearchFilters {
   region: string;
   dateStart: string;
   dateEnd: string;
-  organizer: string;
+  organizers: string[];
   selectedTags: string[];
 }
 

@@ -1,4 +1,4 @@
-import { Course, Organizer } from './types';
+import { Course } from './types';
 
 export const REGIONS = ['Noord', 'Oost', 'Zuid', 'West', 'Landelijk', 'Online'];
 
@@ -46,11 +46,12 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'alo-studiedag-jan',
     title: 'Landelijke studiedag KVLO en ALO Nederland',
-    organizer: Organizer.JOINT,
+    organizers: ['KVLO', 'ALO Nederland'],
     date: '2026-01-26',
     location: 'ALO Amsterdam',
     region: 'West',
     price: 150,
+    sessions: 1,
     description: 'Inschrijving geopend! Gezamenlijke studiedag op de ALO Amsterdam.',
     tags: ['Studiedag', 'Landelijk', 'Kennisdeling'],
     url: 'https://www.kvlo.nl/kalender/bijeenkomst/detail.aspx?Id=B9CEF428-BBB0-4AE1-8804-A6819124C2AF',
@@ -60,11 +61,12 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-bsm-feb',
     title: 'Cursus Van start met BSM of LO2',
-    organizer: Organizer.KVLO,
+    organizers: ['KVLO'],
     date: '2026-02-02',
     location: 'Zeist',
     region: 'Landelijk',
     price: 295,
+    sessions: 2,
     description: 'Voor docenten die starten met BSM of LO2.',
     tags: ['VO', 'BSM', 'LO2'],
     url: 'https://www.kvlo.nl',
@@ -73,7 +75,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-coord-feb',
     title: 'Starterscursus vakgroepcoördinator bewegingsonderwijs po',
-    organizer: Organizer.KVLO,
+    organizers: ['KVLO'],
     date: '2026-02-03',
     location: 'Zeist',
     region: 'Landelijk',
@@ -86,11 +88,12 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'alo-mrt-feb',
     title: 'Cursus Motorische Remedial Teaching',
-    organizer: Organizer.ALO,
+    organizers: ['ALO Nederland'],
     date: '2026-02-04',
     location: 'CALO Windesheim, Zwolle',
     region: 'Landelijk',
     price: 450,
+    sessions: 3,
     description: 'Aangeboden door ALO Nederland. Specialistische cursus MRT.',
     tags: ['PO', 'Zorg', 'MRT'],
     url: 'https://www.alo.nl',
@@ -99,7 +102,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-ehbo-feb',
     title: 'EHBO cursus afdeling Leiden',
-    organizer: Organizer.KVLO,
+    organizers: ['KVLO'],
     date: '2026-02-04',
     location: 'Vlietland College',
     region: 'West',
@@ -112,7 +115,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'alo-heedfulness-feb',
     title: 'Cursus Heedfulness: Van stress naar energie & veerkracht',
-    organizer: Organizer.ALO,
+    organizers: ['ALO Nederland'],
     date: '2026-02-05',
     location: 'HAN ALO, Nijmegen',
     region: 'Landelijk',
@@ -125,7 +128,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-symposium-mrt',
     title: 'Symposium WerkPlekCheck',
-    organizer: Organizer.KVLO,
+    organizers: ['KVLO'],
     date: '2026-03-05',
     location: 'Expo Houten',
     region: 'Landelijk',
@@ -138,7 +141,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-award-mrt',
     title: 'Beweegrijke School Award po',
-    organizer: Organizer.JOINT,
+    organizers: ['KVLO', 'ALO Nederland'],
     date: '2026-03-18',
     location: 'Fontys Sport en Bewegen, Eindhoven',
     region: 'Zuid',
@@ -151,7 +154,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-insp-mrt',
     title: 'Inspiratiedag Beweegrijke Basisscholen',
-    organizer: Organizer.JOINT,
+    organizers: ['KVLO', 'ALO Nederland'],
     date: '2026-03-18',
     location: 'Fontys Sport en Bewegen, Eindhoven',
     region: 'Zuid',
@@ -164,7 +167,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'kvlo-netwerk-mrt',
     title: 'Bijeenkomst netwerk vakgroepcoördinatoren po',
-    organizer: Organizer.KVLO,
+    organizers: ['KVLO'],
     date: '2026-03-24',
     location: 'Zeist',
     region: 'Landelijk',
@@ -177,7 +180,7 @@ export const INITIAL_COURSES: Course[] = [
   {
     id: 'alo-ruimte-mrt',
     title: 'Cursus Bewegen in de Openbare Ruimte',
-    organizer: Organizer.ALO,
+    organizers: ['ALO Nederland'],
     date: '2026-03-24',
     location: 'HAN ALO, Nijmegen',
     region: 'Landelijk',

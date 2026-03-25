@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course, Organizer } from '../types';
+import { Course } from '../types';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 interface CalendarViewProps {
@@ -10,22 +10,23 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({ courses, onSelectCourse }) => {
   // Smart Initialization: Start at the month of the first upcoming course, or first course in list, or today.
   const [currentDate, setCurrentDate] = useState(() => {
-    if (courses.length === 0) return new Date();
+    const coursesWithDate = courses.filter(c => c.date && c.date.trim() !== '');
+    if (coursesWithDate.length === 0) return new Date();
 
     const now = new Date();
     // Sort courses by date
-    const sortedCourses = [...courses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedCourses = [...coursesWithDate].sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
     
     // Find first course in the future
-    const firstUpcoming = sortedCourses.find(c => new Date(c.date) >= now);
+    const firstUpcoming = sortedCourses.find(c => new Date(c.date!) >= now);
     
     if (firstUpcoming) {
-        return new Date(firstUpcoming.date);
+        return new Date(firstUpcoming.date!);
     }
     
     // If no upcoming courses (all past), show the month of the last course
     if (sortedCourses.length > 0) {
-        return new Date(sortedCourses[sortedCourses.length - 1].date);
+        return new Date(sortedCourses[sortedCourses.length - 1].date!);
     }
 
     return now;
@@ -57,6 +58,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ courses, onSelectCou
 
   const getCoursesForDate = (date: Date) => {
     return courses.filter(c => {
+      if (!c.date || c.date.trim() === '') return false;
       const cDate = new Date(c.date);
       return cDate.getDate() === date.getDate() && 
              cDate.getMonth() === date.getMonth() && 
@@ -113,22 +115,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ courses, onSelectCou
                     </span>
                     
                     <div className="flex flex-col gap-1 overflow-y-auto max-h-[85px] custom-scrollbar flex-1">
-                        {daysCourses.map(course => (
-                            <button 
-                                key={course.id}
-                                onClick={() => onSelectCourse(course)}
-                                className={`text-[10px] text-left px-2 py-1.5 rounded border truncate font-bold transition-all shadow-sm hover:shadow-md
-                                    ${course.organizer === Organizer.KVLO 
-                                        ? 'bg-[#7AB800]/10 text-[#5a8700] border-[#7AB800]/20 hover:bg-[#7AB800]/20' 
-                                        : course.organizer === Organizer.ALO
-                                            ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]/20 hover:bg-[#00C1D4]/20'
-                                            : 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
-                                    }`}
-                                title={course.title}
-                            >
-                                {course.title}
-                            </button>
-                        ))}
+                        {daysCourses.map(course => {
+                            const isKVLO = course.organizers?.includes('KVLO');
+                            const isALO = course.organizers?.includes('ALO Nederland');
+                            
+                            return (
+                                <button 
+                                    key={course.id}
+                                    onClick={() => onSelectCourse(course)}
+                                    className={`text-[10px] text-left px-2 py-1.5 rounded border truncate font-bold transition-all shadow-sm hover:shadow-md
+                                        ${isKVLO 
+                                            ? 'bg-[#7AB800]/10 text-[#5a8700] border-[#7AB800]/20 hover:bg-[#7AB800]/20' 
+                                            : isALO
+                                                ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]/20 hover:bg-[#00C1D4]/20'
+                                                : 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
+                                        }`}
+                                    title={course.title}
+                                >
+                                    {course.title}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             );

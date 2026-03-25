@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Course, Organizer } from '../types';
+import { Course, sortOrganizers } from '../types';
 import * as L from 'leaflet';
 
 interface MapViewProps {
@@ -109,8 +109,11 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
             coordTracker[key] = 1;
         }
 
+        const isKVLO = course.organizers?.includes('KVLO');
+        const isALO = course.organizers?.includes('ALO Nederland');
+
         // Icon Colors
-        const color = course.organizer === Organizer.KVLO ? '#7AB800' : course.organizer === Organizer.ALO ? '#00C1D4' : '#7e22ce';
+        const color = isKVLO ? '#7AB800' : isALO ? '#00C1D4' : '#7e22ce';
         
         const customIcon = L.divIcon({
             className: '', // Empty to remove default white square if configured in CSS, or we style inline
@@ -141,8 +144,8 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         const header = document.createElement('div');
         header.className = 'flex items-center justify-between mb-2';
         header.innerHTML = `
-            <span class="text-[10px] font-black uppercase tracking-wider ${course.organizer === Organizer.KVLO ? 'text-[#7AB800]' : course.organizer === Organizer.ALO ? 'text-[#00C1D4]' : 'text-purple-600'}">
-                ${course.organizer}
+            <span class="text-[10px] font-black uppercase tracking-wider ${isKVLO ? 'text-[#7AB800]' : isALO ? 'text-[#00C1D4]' : 'text-purple-600'}">
+                ${sortOrganizers(course.organizers).join(', ')}
             </span>
             <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                 ${course.region}
@@ -159,9 +162,10 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         // Date Info
         const info = document.createElement('div');
         info.className = 'flex items-center gap-2 text-xs text-slate-500 font-medium pb-3 border-b border-slate-50 mb-3';
+        const dateString = course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL') : 'Datum onbekend';
         info.innerHTML = `
              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-             <span>${new Date(course.date).toLocaleDateString('nl-NL')}</span>
+             <span>${dateString}</span>
         `;
         popupContent.appendChild(info);
 

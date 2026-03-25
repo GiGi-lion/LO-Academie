@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Course, Organizer } from '../types';
+import { Course, ORGANIZERS } from '../types';
 import { REGIONS, DEFAULT_IMAGES } from '../constants';
-import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon, Sparkles } from 'lucide-react';
-import { suggestTags, suggestImage } from '../services/geminiService';
+import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon, Wand2 } from 'lucide-react';
+import { suggestImage, extractCourseFromUrl } from '../services/geminiService';
 
 interface AddCourseModalProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ interface AddCourseModalProps {
 
 export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave, onDelete, courseToEdit }) => {
   const [formData, setFormData] = useState<Partial<Course>>({
-    organizer: Organizer.KVLO,
+    organizers: [],
     region: 'Landelijk',
     price: 0,
     tags: [],
@@ -23,23 +23,39 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
   const [tagInput, setTagInput] = useState('');
   const [priceInput, setPriceInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isSuggestingTags, setIsSuggestingTags] = useState(false);
+  const [isExtractingUrl, setIsExtractingUrl] = useState(false);
+  const [customOrganizer, setCustomOrganizer] = useState('');
+  const [showCustomOrganizer, setShowCustomOrganizer] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (courseToEdit) {
         setFormData({ ...courseToEdit });
         setPriceInput(courseToEdit.price === 0 ? '' : courseToEdit.price.toString().replace('.', ','));
+        
+        // Check if there's any custom organizer
+        const hasCustom = courseToEdit.organizers?.some(org => !ORGANIZERS.includes(org));
+        if (hasCustom) {
+          setShowCustomOrganizer(true);
+          const customOrg = courseToEdit.organizers?.find(org => !ORGANIZERS.includes(org));
+          if (customOrg) setCustomOrganizer(customOrg);
+        } else {
+          setShowCustomOrganizer(false);
+          setCustomOrganizer('');
+        }
       } else {
         setFormData({
-          organizer: Organizer.KVLO,
+          organizers: [],
           region: 'Landelijk',
           price: 0,
           tags: [],
           url: '',
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split('T')[0],
+          sessions: 1
         });
         setPriceInput('');
+        setShowCustomOrganizer(false);
+        setCustomOrganizer('');
       }
     }
   }, [isOpen, courseToEdit]);
@@ -48,21 +64,18 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.date || !formData.description) return;
+    if (!formData.title || !formData.description) return;
 
     setIsSaving(true);
     const id = courseToEdit?.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
     
     let finalImageUrl = formData.imageUrl;
     
-    // Als de afbeeldings-URL leeg is (of leeggemaakt door de gebruiker), probeer een nieuwe te genereren
     if (!finalImageUrl || finalImageUrl.trim() === '') {
-      // Probeer eerst een afbeelding van de opgegeven URL te halen via Microlink (Open Graph)
       if (formData.url && formData.url !== '#' && formData.url.startsWith('http')) {
         try {
           const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(formData.url)}`);
           const json = await res.json();
-          // Gebruik alleen de echte 'image' (Open Graph image), GEEN logo's
           if (json.status === 'success' && json.data?.image?.url) {
             finalImageUrl = json.data.image.url;
           }
@@ -71,7 +84,6 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
         }
       }
       
-      // Als dat niet lukt, kies een goed passende, relevante afbeelding via AI (of fallback naar random)
       if (!finalImageUrl || finalImageUrl.trim() === '') {
         try {
           finalImageUrl = await suggestImage(formData.title || '', formData.description || '', DEFAULT_IMAGES);
@@ -81,14 +93,23 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       }
     }
 
+    // Combine selected organizers with custom organizer if applicable
+    let finalOrganizers = [...(formData.organizers || [])].filter(org => ORGANIZERS.includes(org));
+    if (showCustomOrganizer && customOrganizer.trim()) {
+      finalOrganizers.push(customOrganizer.trim());
+    }
+    // Remove duplicates
+    finalOrganizers = [...new Set(finalOrganizers)];
+
     const savedCourse: Course = {
       id,
       title: formData.title,
-      organizer: formData.organizer as Organizer,
+      organizers: finalOrganizers,
       date: formData.date,
       location: formData.location || 'Onbekend',
       region: formData.region || 'Landelijk',
       price: Number(formData.price) || 0,
+      sessions: formData.sessions ? Number(formData.sessions) : undefined,
       description: formData.description,
       tags: formData.tags || [],
       url: formData.url && formData.url.length > 0 ? formData.url : '#',
@@ -122,22 +143,69 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     }
   };
 
-  const handleSuggestTags = async () => {
-    if (!formData.title && !formData.description) return;
-    setIsSuggestingTags(true);
+  const handleAutoFillFromUrl = async () => {
+    if (!formData.url || !formData.url.startsWith('http')) {
+      alert('Vul eerst een geldige URL in (beginnend met http:// of https://).');
+      return;
+    }
+    
+    setIsExtractingUrl(true);
     try {
-      const suggestedTags = await suggestTags(formData.title || '', formData.description || '');
-      if (suggestedTags.length > 0) {
-        const newTagInput = tagInput 
-          ? `${tagInput}, ${suggestedTags.join(', ')}`
-          : suggestedTags.join(', ');
-        setTagInput(newTagInput);
+      const extractedData = await extractCourseFromUrl(formData.url);
+      if (extractedData) {
+        // Automatically add 'ALO Nederland' if an ALO institution is found
+        if (extractedData.organizers) {
+          const aloInstitutions = ['HAN', 'Fontys', 'HHS', 'HvA', 'Windesheim', 'Hanze'];
+          const hasAloInstitution = extractedData.organizers.some(org => aloInstitutions.includes(org));
+          if (hasAloInstitution && !extractedData.organizers.includes('ALO Nederland')) {
+            extractedData.organizers.push('ALO Nederland');
+          }
+        }
+
+        setFormData(prev => {
+          const newData = { ...prev, ...extractedData, url: prev.url };
+          
+          // Handle custom organizers from AI suggestion
+          if (extractedData.organizers) {
+            const hasCustom = extractedData.organizers.some(org => !ORGANIZERS.includes(org));
+            if (hasCustom) {
+              setShowCustomOrganizer(true);
+              const customOrg = extractedData.organizers.find(org => !ORGANIZERS.includes(org));
+              if (customOrg) setCustomOrganizer(customOrg);
+            }
+          }
+          
+          return newData;
+        });
+        
+        if (extractedData.price !== undefined) {
+          setPriceInput(extractedData.price.toString().replace('.', ','));
+        }
+      } else {
+        alert('Kon geen gegevens extraheren van deze URL. Controleer of de URL toegankelijk is.');
       }
     } catch (error) {
-      console.error("Failed to suggest tags", error);
+      console.error('Fout bij automatisch invullen:', error);
+      alert('Er is een fout opgetreden bij het automatisch invullen.');
     } finally {
-      setIsSuggestingTags(false);
+      setIsExtractingUrl(false);
     }
+  };
+
+  const toggleOrganizer = (org: string) => {
+    setFormData(prev => {
+      const current = prev.organizers || [];
+      if (current.includes(org)) {
+        return { ...prev, organizers: current.filter(o => o !== org) };
+      } else {
+        const newOrganizers = [...current, org];
+        const aloInstitutions = ['HAN', 'Fontys', 'HHS', 'HvA', 'Windesheim', 'Hanze'];
+        if (aloInstitutions.includes(org) && !newOrganizers.includes('ALO Nederland')) {
+          newOrganizers.push('ALO Nederland');
+        }
+        return { ...prev, organizers: newOrganizers };
+      }
+    });
   };
 
   const inputClasses = "w-full px-4 py-3 bg-white border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-[#7AB800]/10 focus:border-[#7AB800] outline-none transition-all text-slate-800 font-semibold placeholder:text-slate-400 shadow-sm";
@@ -171,6 +239,40 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-slate-50">
           
           <div className="space-y-6">
+            
+            {/* URL Field at the top */}
+            <div className="md:col-span-2">
+              <label className={labelClasses}>Informatie / aanmelding (URL)</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="url" 
+                    className={`${inputClasses} pl-10`}
+                    placeholder="https://www.kvlo.nl/inschrijven"
+                    value={formData.url || ''}
+                    onChange={e => setFormData({...formData, url: e.target.value})}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoFillFromUrl}
+                  disabled={isExtractingUrl || !formData.url}
+                  className="flex items-center gap-2 px-4 py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-100"
+                >
+                  {isExtractingUrl ? (
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Wand2 className="w-5 h-5" />
+                  )}
+                  <span className="hidden sm:inline">Automatisch invullen</span>
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Vul een URL in en klik op "Automatisch invullen" om de rest van het formulier (titel, datum, prijs, tags, etc.) automatisch in te vullen via AI.
+              </p>
+            </div>
+
             <div>
               <label className={labelClasses}>Titel van de scholing</label>
               <input 
@@ -183,27 +285,74 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
               />
             </div>
 
+            <div>
+              <label className={labelClasses}>Organisator(en)</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl border-2 border-slate-300">
+                {ORGANIZERS.map(org => (
+                  <label key={org} className="flex items-center gap-2 cursor-pointer group">
+                    <div className="relative flex items-center justify-center w-5 h-5">
+                      <input
+                        type="checkbox"
+                        className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:ring-2 focus:ring-[#7AB800]/20 checked:bg-[#7AB800] checked:border-[#7AB800] transition-all cursor-pointer"
+                        checked={(formData.organizers || []).includes(org)}
+                        onChange={() => toggleOrganizer(org)}
+                      />
+                      <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{org}</span>
+                  </label>
+                ))}
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className="relative flex items-center justify-center w-5 h-5">
+                    <input
+                      type="checkbox"
+                      className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:ring-2 focus:ring-[#7AB800]/20 checked:bg-[#7AB800] checked:border-[#7AB800] transition-all cursor-pointer"
+                      checked={showCustomOrganizer}
+                      onChange={(e) => setShowCustomOrganizer(e.target.checked)}
+                    />
+                    <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Overig</span>
+                </label>
+              </div>
+              {showCustomOrganizer && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    className={inputClasses}
+                    placeholder="Vul andere organisator in..."
+                    value={customOrganizer}
+                    onChange={(e) => setCustomOrganizer(e.target.value)}
+                    required={showCustomOrganizer}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className={labelClasses}>Organisator</label>
-                <select 
-                  className={inputClasses}
-                  value={formData.organizer}
-                  onChange={e => setFormData({...formData, organizer: e.target.value as Organizer})}
-                >
-                  <option value={Organizer.KVLO}>KVLO</option>
-                  <option value={Organizer.ALO}>ALO Nederland</option>
-                  <option value={Organizer.JOINT}>Gezamenlijk</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClasses}>Datum</label>
+                <label className={labelClasses}>Datum (optioneel)</label>
                 <input 
-                  required
                   type="date" 
                   className={inputClasses}
                   value={formData.date || ''}
                   onChange={e => setFormData({...formData, date: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Aantal bijeenkomsten</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  step="1"
+                  className={inputClasses}
+                  placeholder="Bijv. 1"
+                  value={formData.sessions || ''}
+                  onChange={e => setFormData({...formData, sessions: e.target.value ? Number(e.target.value) : undefined})}
                 />
               </div>
             </div>
@@ -260,19 +409,6 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
                   />
                 </div>
               </div>
-              <div>
-                <label className={labelClasses}>Aanmeldlink (URL)</label>
-                <div className="relative">
-                  <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    type="url" 
-                    className={`${inputClasses} pl-10`}
-                    placeholder="https://www.kvlo.nl/inschrijven"
-                    value={formData.url || ''}
-                    onChange={e => setFormData({...formData, url: e.target.value})}
-                  />
-                </div>
-              </div>
             </div>
 
             <div>
@@ -302,22 +438,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className={`${labelClasses} mb-0`}>Onderwerpen / Tags</label>
-                <button
-                  type="button"
-                  onClick={handleSuggestTags}
-                  disabled={isSuggestingTags || (!formData.title && !formData.description)}
-                  className="text-xs font-bold text-[#00C1D4] hover:text-[#0096a6] flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSuggestingTags ? (
-                    <div className="w-3 h-3 border-2 border-[#00C1D4]/30 border-t-[#00C1D4] rounded-full animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
-                  )}
-                  {isSuggestingTags ? 'Genereren...' : 'Suggereer tags'}
-                </button>
-              </div>
+              <label className={labelClasses}>Onderwerpen / Tags</label>
               <div className="flex gap-2 mb-3">
                 <input 
                   type="text" 
