@@ -162,7 +162,7 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         // Date Info
         const info = document.createElement('div');
         info.className = 'flex items-center gap-2 text-xs text-slate-500 font-medium pb-3 border-b border-slate-50 mb-3';
-        const dateString = course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL') : 'Datum onbekend';
+        const dateString = course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL') : 'Zonder startdatum';
         info.innerHTML = `
              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
              <span>${dateString}</span>

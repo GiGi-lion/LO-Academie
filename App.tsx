@@ -130,10 +130,14 @@ const App: React.FC = () => {
   const filteredAndSortedCourses = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
 
-    let result = courses.filter(course => {
-      // Verberg verlopen scholingen tenzij in beheer-modus
-      if (course.date && course.date.trim() !== '' && course.date < todayStr && !isAdmin) return false;
+    const processedCourses = courses.map(course => {
+      if (course.date && course.date.trim() !== '' && course.date < todayStr) {
+        return { ...course, date: '' };
+      }
+      return course;
+    });
 
+    let result = processedCourses.filter(course => {
       const matchesQuery = 
         course.title.toLowerCase().includes(filters.query.toLowerCase()) || 
         course.description.toLowerCase().includes(filters.query.toLowerCase()) ||
@@ -337,7 +341,7 @@ const App: React.FC = () => {
                           onToggleFavorite={toggleFavorite}
                           onClick={setSelectedCourse}
                           isAdmin={isAdmin}
-                          onEdit={() => { setCourseToEdit(course); setIsModalOpen(true); }}
+                          onEdit={() => { setCourseToEdit(courses.find(c => c.id === course.id) || course); setIsModalOpen(true); }}
                         />
                       ))
                     ) : (

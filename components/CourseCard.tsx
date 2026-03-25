@@ -153,7 +153,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
             ) : (
               <>
                 <Calendar className="w-3 h-3" />
-                Datum onbekend
+                Zonder startdatum
               </>
             )}
             {course.sessions && course.sessions > 0 && (

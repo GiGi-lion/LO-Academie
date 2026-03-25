@@ -129,7 +129,7 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase">Datum</p>
                 <p className="font-semibold text-slate-800">
-                  {course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Datum onbekend'}
+                  {course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Zonder startdatum'}
                   {course.sessions && course.sessions > 0 && (
                     <span className="ml-2 text-sm text-slate-500 font-normal">
                       ({course.sessions} {course.sessions === 1 ? 'bijeenkomst' : 'bijeenkomsten'})
