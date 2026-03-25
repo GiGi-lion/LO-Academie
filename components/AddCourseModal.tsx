@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Course, Organizer } from '../types';
 import { REGIONS, DEFAULT_IMAGES } from '../constants';
-import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon } from 'lucide-react';
+import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon, Sparkles } from 'lucide-react';
+import { suggestTags, suggestImage } from '../services/geminiService';
 
 interface AddCourseModalProps {
   isOpen: boolean;
@@ -20,12 +21,15 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     url: ''
   });
   const [tagInput, setTagInput] = useState('');
+  const [priceInput, setPriceInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSuggestingTags, setIsSuggestingTags] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (courseToEdit) {
         setFormData({ ...courseToEdit });
+        setPriceInput(courseToEdit.price === 0 ? '' : courseToEdit.price.toString().replace('.', ','));
       } else {
         setFormData({
           organizer: Organizer.KVLO,
@@ -35,6 +39,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
           url: '',
           date: new Date().toISOString().split('T')[0]
         });
+        setPriceInput('');
       }
     }
   }, [isOpen, courseToEdit]);
@@ -47,7 +52,34 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
 
     setIsSaving(true);
     const id = courseToEdit?.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-    const imageUrl = formData.imageUrl || (courseToEdit ? courseToEdit.imageUrl : DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]);
+    
+    let finalImageUrl = formData.imageUrl;
+    
+    // Als de afbeeldings-URL leeg is (of leeggemaakt door de gebruiker), probeer een nieuwe te genereren
+    if (!finalImageUrl || finalImageUrl.trim() === '') {
+      // Probeer eerst een afbeelding van de opgegeven URL te halen via Microlink (Open Graph)
+      if (formData.url && formData.url !== '#' && formData.url.startsWith('http')) {
+        try {
+          const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(formData.url)}`);
+          const json = await res.json();
+          // Gebruik alleen de echte 'image' (Open Graph image), GEEN logo's
+          if (json.status === 'success' && json.data?.image?.url) {
+            finalImageUrl = json.data.image.url;
+          }
+        } catch (err) {
+          console.error("Kon geen afbeelding van de URL ophalen:", err);
+        }
+      }
+      
+      // Als dat niet lukt, kies een goed passende, relevante afbeelding via AI (of fallback naar random)
+      if (!finalImageUrl || finalImageUrl.trim() === '') {
+        try {
+          finalImageUrl = await suggestImage(formData.title || '', formData.description || '', DEFAULT_IMAGES);
+        } catch (err) {
+          finalImageUrl = DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)];
+        }
+      }
+    }
 
     const savedCourse: Course = {
       id,
@@ -60,7 +92,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       description: formData.description,
       tags: formData.tags || [],
       url: formData.url && formData.url.length > 0 ? formData.url : '#',
-      imageUrl,
+      imageUrl: finalImageUrl,
       isNew: courseToEdit ? courseToEdit.isNew : true
     };
 
@@ -77,11 +109,34 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
   const handleAddTag = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (tagInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), tagInput.trim()]
-      }));
+      const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      setFormData(prev => {
+        const existingTags = prev.tags || [];
+        const uniqueNewTags = newTags.filter(t => !existingTags.includes(t));
+        return {
+          ...prev,
+          tags: [...existingTags, ...uniqueNewTags]
+        };
+      });
       setTagInput('');
+    }
+  };
+
+  const handleSuggestTags = async () => {
+    if (!formData.title && !formData.description) return;
+    setIsSuggestingTags(true);
+    try {
+      const suggestedTags = await suggestTags(formData.title || '', formData.description || '');
+      if (suggestedTags.length > 0) {
+        const newTagInput = tagInput 
+          ? `${tagInput}, ${suggestedTags.join(', ')}`
+          : suggestedTags.join(', ');
+        setTagInput(newTagInput);
+      }
+    } catch (error) {
+      console.error("Failed to suggest tags", error);
+    } finally {
+      setIsSuggestingTags(false);
     }
   };
 
@@ -182,11 +237,26 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">€</span>
                   <input 
-                    type="number" 
+                    type="text" 
                     className={`${inputClasses} pl-8`}
-                    placeholder="0"
-                    value={formData.price}
-                    onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                    placeholder="0,00"
+                    value={priceInput}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (/^[0-9]*,?[0-9]*$/.test(val)) {
+                        setPriceInput(val);
+                        const num = parseFloat(val.replace(',', '.'));
+                        setFormData({...formData, price: isNaN(num) ? 0 : num});
+                      }
+                    }}
+                    onBlur={() => {
+                      const num = parseFloat(priceInput.replace(',', '.'));
+                      if (!isNaN(num) && num !== 0) {
+                        setPriceInput(num % 1 === 0 ? num.toString() : num.toFixed(2).replace('.', ','));
+                      } else {
+                        setPriceInput('');
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -222,14 +292,32 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
               <input 
                 type="text" 
                 className={inputClasses}
-                placeholder="Laat leeg voor een automatische afbeelding"
+                placeholder="Laat leeg om automatisch een afbeelding van de website te halen"
                 value={formData.imageUrl || ''}
                 onChange={e => setFormData({...formData, imageUrl: e.target.value})}
               />
+              <p className="text-xs text-slate-500 mt-2 ml-1">
+                Tip: Maak dit veld leeg bij een bestaande scholing en sla op om automatisch een nieuwe afbeelding te genereren op basis van de aanmeldlink.
+              </p>
             </div>
 
             <div>
-              <label className={labelClasses}>Onderwerpen / Tags</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className={`${labelClasses} mb-0`}>Onderwerpen / Tags</label>
+                <button
+                  type="button"
+                  onClick={handleSuggestTags}
+                  disabled={isSuggestingTags || (!formData.title && !formData.description)}
+                  className="text-xs font-bold text-[#00C1D4] hover:text-[#0096a6] flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSuggestingTags ? (
+                    <div className="w-3 h-3 border-2 border-[#00C1D4]/30 border-t-[#00C1D4] rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  {isSuggestingTags ? 'Genereren...' : 'Suggereer tags'}
+                </button>
+              </div>
               <div className="flex gap-2 mb-3">
                 <input 
                   type="text" 

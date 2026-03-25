@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Course, Organizer } from '../types';
 import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download } from 'lucide-react';
-import { DEFAULT_IMAGES } from '../constants';
+import { DEFAULT_IMAGES, formatPrice } from '../constants';
 
 interface CourseDetailModalProps {
   course: Course | null;
@@ -136,7 +136,7 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase">Kosten</p>
                 <p className="font-semibold text-slate-800">
-                  {course.price === 0 ? 'Gratis deelname' : `€${course.price},- per persoon`}
+                  {course.price === 0 ? 'Gratis deelname' : `${formatPrice(course.price)} per persoon`}
                 </p>
               </div>
             </div>

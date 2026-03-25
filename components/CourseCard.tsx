@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Course, Organizer } from '../types';
 import { MapPin, Calendar, ArrowRight, Heart, Share2, Check, Pencil } from 'lucide-react';
-import { DEFAULT_IMAGES } from '../constants';
+import { DEFAULT_IMAGES, formatPrice } from '../constants';
 
 interface CourseCardProps {
   course: Course;
@@ -160,7 +160,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
 
         <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
             <span className="font-black text-lg text-[#7AB800]">
-                {course.price === 0 ? 'Gratis' : `€${course.price},-`}
+                {formatPrice(course.price)}
             </span>
             <div className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all">
                 Details <ArrowRight className="w-3.5 h-3.5" />

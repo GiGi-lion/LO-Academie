@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Course, ChatMessage } from '../types';
 import { getSmartRecommendations } from '../services/geminiService';
-import { Sparkles, Send, X, Bot, Lock, GraduationCap, ChevronRight, User, Target, MapPin } from 'lucide-react';
+import { Sparkles, Send, X, Bot, GraduationCap, ChevronRight, User, Target, MapPin } from 'lucide-react';
 
 interface AIAssistantProps {
   courses: Course[];
@@ -97,8 +97,7 @@ const WIZARD_STEPS = [
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const hasApiKey = typeof process !== 'undefined' && process.env && process.env.API_KEY && process.env.API_KEY !== "undefined" && process.env.API_KEY !== "";
-
+  
   const [mode, setMode] = useState<'intro' | 'chat' | 'wizard'>('intro');
   const [wizardStep, setWizardStep] = useState(0);
   const [wizardAnswers, setWizardAnswers] = useState<string[]>([]);
@@ -166,7 +165,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading || !hasApiKey) return;
+    if (!input.trim() || loading) return;
     const userText = input;
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
@@ -185,7 +184,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
           ${isOpen ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}
           bg-gradient-to-r from-[#00C1D4] to-[#0096a6] hover:scale-110 text-white cursor-pointer`}
       >
-        {hasApiKey ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+        <Sparkles className="w-6 h-6" />
         <span className="font-bold hidden md:inline">Studieadviseur</span>
       </button>
 
@@ -248,19 +247,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
                   <div className="space-y-3 w-full">
                      <button 
                        onClick={startWizard}
-                       disabled={!hasApiKey}
                        className="w-full py-4 bg-[#7AB800] text-white rounded-xl font-bold shadow-lg shadow-green-500/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                      >
                        <Sparkles className="w-5 h-5" /> Start Keuzehulp
                      </button>
                      <button 
                         onClick={startChat}
-                        disabled={!hasApiKey}
                         className="w-full py-4 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                      >
                         Stel een vraag
                      </button>
-                     {!hasApiKey && <p className="text-xs text-red-400 mt-2">Geen API Key geconfigureerd</p>}
                   </div>
                </div>
             )}

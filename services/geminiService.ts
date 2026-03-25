@@ -4,14 +4,90 @@ import { Course } from '../types';
 // We initialiseren de client NIET hier, maar pas in de functie. 
 // Dit voorkomt dat de app crasht bij het laden (White Screen) als de API Key mist of de env nog niet geladen is.
 
+export const suggestTags = async (title: string, description: string): Promise<string[]> => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+        console.warn("Gemini API Key ontbreekt.");
+        return [];
+    }
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+
+    const prompt = `
+      Je bent een expert in het categoriseren van cursussen voor docenten lichamelijke opvoeding (LO) en bewegingsonderwijs.
+      Gegeven de volgende titel en omschrijving van een scholing, genereer 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag).
+      Geef ALLEEN een komma-gescheiden lijst van tags terug, zonder extra tekst, opsommingstekens of uitleg.
+      Voorbeelden van goede tags: PO, VO, Didactiek, BSM, MRT, Turnen, Spel, Zwemmen, EHBO.
+
+      Titel: ${title}
+      Omschrijving: ${description}
+
+      Tags:
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+
+    const text = response.text || "";
+    // Split by comma, trim whitespace, and filter out empty strings
+    const tags = text.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    return tags;
+  } catch (error) {
+    console.error("Gemini API Error (suggestTags):", error);
+    return [];
+  }
+};
+
+export const suggestImage = async (title: string, description: string, availableImages: string[]): Promise<string> => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+        return availableImages[Math.floor(Math.random() * availableImages.length)];
+    }
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+
+    const prompt = `
+      Je bent een expert in het selecteren van relevante afbeeldingen voor cursussen lichamelijke opvoeding en bewegingsonderwijs.
+      Gegeven de volgende titel en omschrijving van een scholing, kies de meest relevante afbeeldings-URL uit de lijst met beschikbare URL's.
+      Geef ALLEEN de exacte URL terug, zonder extra tekst of uitleg.
+
+      Titel: ${title}
+      Omschrijving: ${description}
+
+      Beschikbare URL's:
+      ${availableImages.join('\n')}
+
+      Gekozen URL:
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+
+    const text = response.text?.trim() || "";
+    if (availableImages.includes(text)) {
+      return text;
+    }
+    return availableImages[Math.floor(Math.random() * availableImages.length)];
+  } catch (error) {
+    console.error("Gemini API Error (suggestImage):", error);
+    return availableImages[Math.floor(Math.random() * availableImages.length)];
+  }
+};
+
 export const getSmartRecommendations = async (userQuery: string, availableCourses: Course[]): Promise<string> => {
   try {
     // Haal API key op. We ondersteunen zowel Vite's import.meta.env als process.env
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
         console.warn("Gemini API Key ontbreekt in environment variables.");
-        return "Ik kan helaas geen slimme aanbevelingen doen omdat mijn AI-sleutel ontbreekt. De beheerder moet de API_KEY instellen in de configuratie.";
+        return "Ik kan helaas geen slimme aanbevelingen doen omdat mijn AI-sleutel ontbreekt. De beheerder moet de GEMINI_API_KEY instellen in de configuratie.";
     }
 
     // Lazy initialization met de key

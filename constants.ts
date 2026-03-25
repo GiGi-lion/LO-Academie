@@ -2,6 +2,22 @@ import { Course, Organizer } from './types';
 
 export const REGIONS = ['Noord', 'Oost', 'Zuid', 'West', 'Landelijk', 'Online'];
 
+export const formatPrice = (price: number) => {
+  if (price === 0) return 'Gratis';
+  
+  if (price % 1 === 0) {
+    // For whole numbers, use Dutch formatting without decimals and append ,-
+    const formatted = new Intl.NumberFormat('nl-NL').format(price);
+    return `€ ${formatted},-`;
+  }
+  
+  // For decimals, use standard currency formatting
+  return new Intl.NumberFormat('nl-NL', { 
+    style: 'currency', 
+    currency: 'EUR' 
+  }).format(price);
+};
+
 // Nieuwe set sfeerbeelden voor fallbacks - Puur gericht op school/educatie/sport
 export const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&q=80&w=400', // School gymzaal
@@ -10,6 +26,20 @@ export const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1589556264800-08ae9e129a8c?auto=format&fit=crop&q=80&w=400', // Sportveld buiten
   'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400', // Klaslokaal/Theorie
   'https://images.unsplash.com/photo-1472224371017-08207f84aaae?auto=format&fit=crop&q=80&w=400', // Grasveld/Natuur
+  'https://images.unsplash.com/photo-1515523110800-9415d13b84a8?auto=format&fit=crop&q=80&w=400', // Zwemmen/Zwembad
+  'https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&q=80&w=400', // Basketbal/Balsport
+  'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&q=80&w=400', // Hardlopen/Conditie
+  'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?auto=format&fit=crop&q=80&w=400', // EHBO/Veiligheid
+  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=400', // Yoga/Ontspanning/Mindfulness
+  'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=400', // Kinderen buiten spelen/PO
+  'https://images.unsplash.com/photo-1565692694301-3c46d37ceb96?auto=format&fit=crop&q=80&w=400', // Juichende mensen/Award/Viering
+  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&q=80&w=400', // Vergadering/Netwerk
+  'https://images.unsplash.com/photo-1552674605-469523f54050?auto=format&fit=crop&q=80&w=400', // Outdoor/Urban sports
+  'https://images.unsplash.com/photo-1562771379-e71d2b1283f5?auto=format&fit=crop&q=80&w=400', // Grote sporthal leeg
+  'https://images.unsplash.com/photo-1616961862865-c9b433c6a96b?auto=format&fit=crop&q=80&w=400', // Klimwand/Spelend kind
+  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=400', // Congreszaal/Presentatie
+  'https://images.unsplash.com/photo-1532444458054-01a7dd3e9fca?auto=format&fit=crop&q=80&w=400', // Stopwatch/Tijdwaarneming
+  'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=400', // Notitieboek/Agenda
 ];
 
 export const INITIAL_COURSES: Course[] = [
