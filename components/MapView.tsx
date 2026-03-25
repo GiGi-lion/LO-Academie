@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
 import { Course, Organizer } from '../types';
 import * as L from 'leaflet';
-import { Calendar } from 'lucide-react';
 
 interface MapViewProps {
   courses: Course[];
@@ -40,93 +38,57 @@ const getCoordinates = (location: string, region: string): [number, number] => {
   return [52.1326, 5.2913]; // Center of NL
 };
 
-// Helper to add slight random offset to prevent exact overlap
-const jitter = (coord: number): number => {
-    return coord + (Math.random() - 0.5) * 0.005;
-};
-
-const PopupContent: React.FC<{ course: Course; onSelect: () => void }> = ({ course, onSelect }) => {
-    const orgColorClass = course.organizer === Organizer.KVLO ? 'text-[#7AB800]' : course.organizer === Organizer.ALO ? 'text-[#00C1D4]' : 'text-purple-600';
-    const dateStr = new Date(course.date).toLocaleDateString('nl-NL');
-
-    return (
-        <div className="w-[280px] p-0 font-sans flex flex-col">
-            <div className="p-4 bg-white">
-                <div className="flex items-center justify-between mb-2">
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${orgColorClass}`}>
-                    {course.organizer}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                    {course.region}
-                    </span>
-                </div>
-                
-                <h3 className="font-bold text-slate-800 text-sm leading-snug line-clamp-2 mb-2">
-                    {course.title}
-                </h3>
-                
-                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium pb-3 border-b border-slate-50 mb-3">
-                     <Calendar className="w-3 h-3" />
-                     <span>{dateStr}</span>
-                </div>
-
-                 <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect();
-                    }}
-                    className="w-full bg-slate-50 hover:bg-white text-slate-600 hover:text-[#00C1D4] hover:border-[#00C1D4] text-xs font-bold py-2.5 px-3 rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                    Details bekijken
-                </button>
-            </div>
-        </div>
-    );
-};
-
 export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletMap = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
+  // Initialize Map
   useEffect(() => {
-    if (!mapRef.current || leafletMap.current) return;
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Initialize Map with 'Voyager' tiles (Very similar to Google Maps style)
-    leafletMap.current = L.map(mapRef.current, {
+    // Create Map
+    const map = L.map(mapContainerRef.current, {
         zoomControl: false,
-        attributionControl: false
+        attributionControl: false,
+        scrollWheelZoom: false, // Prevent page scroll hijacking
+        preferCanvas: true
     }).setView([52.1326, 5.2913], 7);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20
-    }).addTo(leafletMap.current);
-    
-    // Add custom zoom control to bottom right (Like Google)
-    L.control.zoom({
-        position: 'bottomright'
-    }).addTo(leafletMap.current);
+    // Tiles - Light variant for clean look and speed
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd'
+    }).addTo(map);
 
-    // Clean up on unmount
+    // Controls
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Layer Group for markers
+    const layerGroup = L.layerGroup().addTo(map);
+    layerGroupRef.current = layerGroup;
+    mapInstanceRef.current = map;
+
+    // Handle Resize (fix for grey tiles if container resizes/animates in)
+    const resizeObserver = new ResizeObserver(() => {
+        if (map) map.invalidateSize();
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
     return () => {
-      if (leafletMap.current) {
-        leafletMap.current.remove();
-        leafletMap.current = null;
-      }
+      resizeObserver.disconnect();
+      map.remove();
+      mapInstanceRef.current = null;
     };
   }, []);
 
   // Update Markers
   useEffect(() => {
-    if (!leafletMap.current) return;
+    if (!layerGroupRef.current || !mapInstanceRef.current) return;
+    
+    const layerGroup = layerGroupRef.current;
+    layerGroup.clearLayers();
 
-    // Clear existing markers
-    leafletMap.current.eachLayer((layer) => {
-        if (layer instanceof L.Marker) {
-            leafletMap.current?.removeLayer(layer);
-        }
-    });
-
-    // Track coordinates to handle stacking
     const coordTracker: Record<string, number> = {};
 
     courses.forEach(course => {
@@ -134,84 +96,117 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
 
         let [lat, lng] = getCoordinates(course.location, course.region);
         
-        // Simple key to check existence (rounded to avoid float issues)
+        // Stacking logic for courses at same location
         const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-        
         if (coordTracker[key]) {
-            // If location already exists, jitter slightly
-            // We use a deterministic offset based on count so it doesn't jump around on re-renders if order is same
             const count = coordTracker[key];
-            const angle = count * (Math.PI / 3); // Spread in a circle roughly
-            const radius = 0.00015 * count; // Move further out as pile grows
-            
-            // Apply simple offset (converting somewhat to meters roughly, lat/lng degrees differ)
+            const angle = count * (Math.PI / 3); 
+            const radius = 0.00015 * count; 
             lat = lat + Math.cos(angle) * radius; 
-            lng = lng + Math.sin(angle) * radius * 1.5; // Longitude degrees are 'shorter' in NL
-            
+            lng = lng + Math.sin(angle) * radius * 1.5; 
             coordTracker[key]++;
         } else {
             coordTracker[key] = 1;
         }
-        
-        // Custom color based on organizer
-        const color = course.organizer === Organizer.KVLO ? '#7AB800' : course.organizer === Organizer.ALO ? '#00C1D4' : '#7e22ce';
 
+        // Icon Colors
+        const color = course.organizer === Organizer.KVLO ? '#7AB800' : course.organizer === Organizer.ALO ? '#00C1D4' : '#7e22ce';
+        
         const customIcon = L.divIcon({
-            className: 'custom-div-icon',
+            className: '', // Empty to remove default white square if configured in CSS, or we style inline
             html: `
                 <div style="
                     background-color: ${color}; 
-                    width: 16px; 
-                    height: 16px; 
+                    width: 14px; 
+                    height: 14px; 
                     border-radius: 50%; 
-                    border: 3px solid white; 
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                    transform: translate(-2px, -2px);
-                    transition: transform 0.2s;
+                    border: 2px solid white; 
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+                    cursor: pointer;
+                    transition: transform 0.2s ease;
                 "></div>
             `,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-            popupAnchor: [0, -6]
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+            popupAnchor: [0, -8]
         });
 
-        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(leafletMap.current!);
+        const marker = L.marker([lat, lng], { icon: customIcon });
 
-        // Create container for React Popup
-        const container = document.createElement('div');
-        const root = createRoot(container);
+        // Popup Content Construction (DOM API for performance & event safety)
+        const popupContent = document.createElement('div');
+        popupContent.className = 'w-[280px] font-sans p-4 bg-white';
         
-        // Render popup content
-        root.render(
-            <PopupContent course={course} onSelect={() => onSelectCourse(course)} />
-        );
+        // Header
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between mb-2';
+        header.innerHTML = `
+            <span class="text-[10px] font-black uppercase tracking-wider ${course.organizer === Organizer.KVLO ? 'text-[#7AB800]' : course.organizer === Organizer.ALO ? 'text-[#00C1D4]' : 'text-purple-600'}">
+                ${course.organizer}
+            </span>
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                ${course.region}
+            </span>
+        `;
+        popupContent.appendChild(header);
 
-        marker.bindPopup(container, {
+        // Title
+        const title = document.createElement('h3');
+        title.className = 'font-bold text-slate-800 text-sm leading-snug line-clamp-2 mb-2';
+        title.textContent = course.title;
+        popupContent.appendChild(title);
+
+        // Date Info
+        const info = document.createElement('div');
+        info.className = 'flex items-center gap-2 text-xs text-slate-500 font-medium pb-3 border-b border-slate-50 mb-3';
+        info.innerHTML = `
+             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+             <span>${new Date(course.date).toLocaleDateString('nl-NL')}</span>
+        `;
+        popupContent.appendChild(info);
+
+        // Button
+        const btn = document.createElement('button');
+        btn.className = 'w-full bg-slate-50 hover:bg-white text-slate-600 hover:text-[#00C1D4] hover:border-[#00C1D4] text-xs font-bold py-2.5 px-3 rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm';
+        btn.textContent = 'Details bekijken';
+        
+        // Native Click Listener
+        btn.onclick = (e) => {
+            e.stopPropagation(); // Stop Leaflet map click bubbling
+            onSelectCourse(course);
+        };
+        
+        popupContent.appendChild(btn);
+
+        marker.bindPopup(popupContent, {
             maxWidth: 280,
             minWidth: 280,
             closeButton: true,
-            autoPan: true,
+            autoPan: false, // Disables the jumping
             offset: [0, 2]
         });
-        
-        // Add hover effect
+
+        // Hover Effects
         marker.on('mouseover', function (e) {
             this.setZIndexOffset(1000);
-            const el = e.target.getElement().querySelector('div');
-            if(el) el.style.transform = 'translate(-2px, -2px) scale(1.3)';
+            const el = e.target.getElement()?.querySelector('div');
+            if(el) el.style.transform = 'scale(1.3)';
         });
         marker.on('mouseout', function (e) {
             this.setZIndexOffset(0);
-             const el = e.target.getElement().querySelector('div');
-            if(el) el.style.transform = 'translate(-2px, -2px) scale(1)';
+             const el = e.target.getElement()?.querySelector('div');
+            if(el) el.style.transform = 'scale(1)';
         });
+
+        layerGroup.addLayer(marker);
     });
 
   }, [courses, onSelectCourse]);
 
+  // Removed 'animate-in' class to ensure map container size is stable on mount
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-[600px] relative animate-in fade-in duration-300">
-        <div ref={mapRef} className="w-full h-full z-0" />
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-[600px] relative">
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
         <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur px-4 py-3 rounded-xl shadow-lg shadow-slate-200/50 text-xs font-medium z-[400] border border-slate-100">
             <div className="flex items-center gap-4">
                 <span className="flex items-center gap-2 text-slate-600 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-[#7AB800] ring-2 ring-white shadow-sm"></div> KVLO</span>

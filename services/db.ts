@@ -1,70 +1,151 @@
 import { Course } from '../types';
 import { INITIAL_COURSES } from '../constants';
+import { supabase } from './supabase';
 
-// Dit bestand beheert de data-opslag.
-// Momenteel draait de applicatie in 'Demo Modus' met LocalStorage.
-// Er zijn geen externe database-connecties of API-keys nodig in dit bestand.
+const mapFromSupabase = (row: any): Course => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  date: row.date,
+  price: row.price,
+  location: row.location || 'Onbekend',
+  region: row.region,
+  organizer: row.organizer,
+  tags: row.tags || [],
+  url: row.url || '',
+  imageUrl: row.imageUrl || row.image_url || ''
+});
 
-const LOCAL_EVENT = 'local-storage-update';
+const mapToSupabase = (course: Course) => {
+  const data: any = {
+    title: course.title,
+    description: course.description,
+    date: course.date,
+    price: course.price,
+    location: course.location,
+    region: course.region,
+    organizer: course.organizer,
+    tags: course.tags,
+    url: course.url,
+    imageUrl: course.imageUrl
+  };
+  
+  if (course.id) {
+    data.id = course.id;
+  }
+  
+  return data;
+};
+
+export const fetchCourses = async (): Promise<Course[]> => {
+  const { data, error } = await supabase
+    .from('courses')
+    .select('*')
+    .order('date', { ascending: true });
+    
+  if (error) throw error;
+  
+  return data ? data.map(mapFromSupabase) : [];
+};
 
 // Functie om naar updates te luisteren
 export const subscribeToCourses = (onUpdate: (courses: Course[]) => void) => {
-  const loadLocal = () => {
+  const loadCourses = async () => {
     try {
-      const saved = localStorage.getItem('local_courses');
-      const courses = saved ? JSON.parse(saved) : INITIAL_COURSES;
+      const courses = await fetchCourses();
       onUpdate(courses);
     } catch (e) {
-      console.error("Fout bij laden data:", e);
-      onUpdate(INITIAL_COURSES);
+      console.error("Fout bij laden data uit Supabase:", e);
+      onUpdate([]);
     }
   };
 
-  loadLocal(); // Direct laden
+  loadCourses(); // Direct laden
   
-  const handleStorageEvent = () => loadLocal();
-  window.addEventListener(LOCAL_EVENT, handleStorageEvent);
-  window.addEventListener('storage', handleStorageEvent);
+  // Realtime subscription
+  const subscription = supabase
+    .channel('courses_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, () => {
+      loadCourses();
+    })
+    .subscribe();
 
   return () => {
-    window.removeEventListener(LOCAL_EVENT, handleStorageEvent);
-    window.removeEventListener('storage', handleStorageEvent);
+    supabase.removeChannel(subscription);
   };
 };
 
 // Scholing opslaan (Toevoegen of Bewerken)
-export const saveCourseToDB = async (course: Course) => {
-  const saved = localStorage.getItem('local_courses');
-  const current = saved ? JSON.parse(saved) : INITIAL_COURSES;
-  
-  const exists = current.some((c: Course) => c.id === course.id);
-  let next;
-  
-  if (exists) {
-    next = current.map((c: Course) => c.id === course.id ? course : c);
-  } else {
-    next = [course, ...current];
+export const saveCourseToDB = async (course: Course): Promise<Course> => {
+  try {
+    const isNew = course.isNew;
+    // We don't want to save isNew to the database
+    const { isNew: _, ...courseDataToMap } = course;
+    const courseData = mapToSupabase(courseDataToMap as Course);
+
+    if (isNew) {
+      // For new courses, we let Supabase generate the ID
+      delete courseData.id;
+      const { data, error } = await supabase
+        .from('courses')
+        .insert(courseData)
+        .select()
+        .single();
+      if (error) throw error;
+      return mapFromSupabase(data);
+    } else {
+      delete courseData.id; // Prevent updating primary key
+      const { data, error } = await supabase
+        .from('courses')
+        .update(courseData)
+        .eq('id', course.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return mapFromSupabase(data);
+    }
+  } catch (e) {
+    console.error("Error saving course:", e);
+    throw e;
   }
-  
-  localStorage.setItem('local_courses', JSON.stringify(next));
-  window.dispatchEvent(new Event(LOCAL_EVENT));
 };
 
 // Scholing verwijderen
 export const deleteCourseFromDB = async (id: string) => {
-  const saved = localStorage.getItem('local_courses');
-  const current = saved ? JSON.parse(saved) : INITIAL_COURSES;
-  const next = current.filter((c: Course) => c.id !== id);
-  
-  localStorage.setItem('local_courses', JSON.stringify(next));
-  window.dispatchEvent(new Event(LOCAL_EVENT));
+  try {
+    const { error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+  } catch (e) {
+    console.error("Error deleting course:", e);
+    throw e;
+  }
 };
 
 // Database vullen met demo data
 export const seedDatabase = async () => {
-  localStorage.setItem('local_courses', JSON.stringify(INITIAL_COURSES));
-  window.dispatchEvent(new Event(LOCAL_EVENT));
-  return true;
+  try {
+    // We remove the IDs so Supabase generates new UUIDs
+    const coursesToInsert = INITIAL_COURSES.map(course => {
+      const { isNew: _, ...courseDataToMap } = course;
+      const mapped = mapToSupabase(courseDataToMap);
+      delete mapped.id; // Ensure Supabase generates UUID
+      return mapped;
+    });
+    
+    const { error } = await supabase
+      .from('courses')
+      .insert(coursesToInsert);
+      
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error("Error seeding database:", e);
+    throw e;
+  }
 };
 
-export const isLiveMode = () => false;
+export const isLiveMode = () => true;

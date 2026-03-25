@@ -6,7 +6,7 @@ import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon } from 'lucide-
 interface AddCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (course: Course) => void;
+  onSave: (course: Course) => Promise<void> | void;
   onDelete?: (id: string) => void;
   courseToEdit?: Course;
 }
@@ -20,6 +20,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     url: ''
   });
   const [tagInput, setTagInput] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,11 +41,12 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.date || !formData.description) return;
 
-    const id = courseToEdit?.id || Date.now().toString();
+    setIsSaving(true);
+    const id = courseToEdit?.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
     const imageUrl = formData.imageUrl || (courseToEdit ? courseToEdit.imageUrl : DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]);
 
     const savedCourse: Course = {
@@ -62,8 +64,14 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       isNew: courseToEdit ? courseToEdit.isNew : true
     };
 
-    onSave(savedCourse);
-    onClose();
+    try {
+      await onSave(savedCourse);
+      onClose();
+    } catch (e) {
+      // Error is handled by parent component
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddTag = (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -274,16 +282,25 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 sm:flex-none px-8 py-3 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+              disabled={isSaving}
+              className="flex-1 sm:flex-none px-8 py-3 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Annuleren
             </button>
             <button 
               type="submit"
               onClick={handleSubmit}
-              className="flex-1 sm:flex-none px-10 py-3 bg-gradient-to-r from-[#7AB800] to-[#00C1D4] text-white font-black rounded-xl hover:shadow-lg hover:shadow-[#00C1D4]/20 transition-all uppercase tracking-widest text-sm"
+              disabled={isSaving}
+              className="flex-1 sm:flex-none px-10 py-3 bg-gradient-to-r from-[#7AB800] to-[#00C1D4] text-white font-black rounded-xl hover:shadow-lg hover:shadow-[#00C1D4]/20 transition-all uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Opslaan
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Opslaan...
+                </>
+              ) : (
+                'Opslaan'
+              )}
             </button>
           </div>
         </div>

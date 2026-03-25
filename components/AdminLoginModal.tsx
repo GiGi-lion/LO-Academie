@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Lock, ShieldAlert } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -8,21 +9,37 @@ interface AdminLoginModalProps {
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Voor deze demo gebruiken we het wachtwoord "admin"
-    if (password === 'admin') {
-      onLoginSuccess();
-      setPassword('');
-      setError(false);
-    } else {
-      setError(true);
-      setTimeout(() => setError(false), 2000);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      if (data.session) {
+        onLoginSuccess();
+        setEmail('');
+        setPassword('');
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Inloggen mislukt');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,17 +58,31 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
 
           <h2 className="text-2xl font-black text-slate-800 mb-2">Beheerder Toegang</h2>
           <p className="text-slate-500 text-sm mb-8 font-medium">
-            Voer het beheerder wachtwoord in om scholingen toe te voegen of te wijzigen.
+            Log in met je Supabase account om scholingen te beheren.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Wachtwoord (Demo: admin)
-              </label>
-              <div className="relative group">
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  E-mailadres
+                </label>
                 <input 
                   autoFocus
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none transition-all font-bold focus:border-[#00C1D4] focus:ring-4 focus:ring-[#00C1D4]/10"
+                  placeholder="admin@loacademie.nl"
+                  required
+                />
+              </div>
+              
+              <div className="relative group">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Wachtwoord
+                </label>
+                <input 
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -61,25 +92,27 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                       : 'border-slate-100 focus:border-[#7AB800] focus:ring-4 focus:ring-[#7AB800]/10'
                   }`}
                   placeholder="••••••••"
+                  required
                 />
                 {error && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-red-500 animate-in fade-in slide-in-from-right-2">
+                  <div className="absolute right-4 top-[42px] flex items-center gap-1.5 text-red-500 animate-in fade-in slide-in-from-right-2">
                     <ShieldAlert className="w-5 h-5" />
                   </div>
                 )}
               </div>
               {error && (
                 <p className="text-red-500 text-[10px] font-black uppercase tracking-wider mt-2 text-center animate-bounce">
-                  Onjuist wachtwoord, probeer het opnieuw
+                  {error}
                 </p>
               )}
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-gradient-to-r from-[#7AB800] to-[#00C1D4] text-white font-black py-4 rounded-2xl shadow-xl shadow-[#00C1D4]/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-sm"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#7AB800] to-[#00C1D4] text-white font-black py-4 rounded-2xl shadow-xl shadow-[#00C1D4]/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-sm disabled:opacity-70 disabled:hover:scale-100"
             >
-              Inloggen
+              {loading ? 'Bezig met inloggen...' : 'Inloggen'}
             </button>
           </form>
         </div>

@@ -12,7 +12,8 @@ import { CalendarView } from './components/CalendarView';
 import { MapView } from './components/MapView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { Course, SearchFilters, SortOption } from './types';
-import { subscribeToCourses, saveCourseToDB, deleteCourseFromDB, isLiveMode, seedDatabase } from './services/db';
+import { subscribeToCourses, saveCourseToDB, deleteCourseFromDB, isLiveMode, seedDatabase, fetchCourses } from './services/db';
+import { supabase } from './services/supabase';
 import { Plus, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud } from 'lucide-react';
 
 type ViewMode = 'list' | 'calendar' | 'map';
@@ -41,23 +42,35 @@ const App: React.FC = () => {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState<Course | undefined>(undefined);
-  const [toast, setToast] = useState<{message: string, isVisible: boolean}>({ message: '', isVisible: false });
+  const [toast, setToast] = useState<{message: string, isVisible: boolean, type: 'success' | 'error'}>({ message: '', isVisible: false, type: 'success' });
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
   
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Check session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAdmin(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Subscribe to DB updates
   useEffect(() => {
     setIsLoading(true);
-    // Simulate slight network delay to show off Skeleton UI
-    setTimeout(() => {
-        const unsubscribe = subscribeToCourses((newCourses) => {
-        setCourses(newCourses);
-        setIsLoading(false);
-        });
-    }, 800); 
+    const unsubscribe = subscribeToCourses((newCourses) => {
+      setCourses(newCourses);
+      setIsLoading(false);
+    });
+    
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -79,14 +92,14 @@ const App: React.FC = () => {
     );
   };
 
-  const showToast = (message: string) => {
-    setToast({ message, isVisible: true });
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, isVisible: true, type });
   };
 
-  const handleAdminToggle = () => {
+  const handleAdminToggle = async () => {
     if (isAdmin) {
-      setIsAdmin(false);
-      showToast("Beheerdersmodus uitgeschakeld");
+      await supabase.auth.signOut();
+      showToast("Beheerdersmodus uitgeschakeld", "success");
     } else {
       setShowAdminLogin(true);
     }
@@ -95,7 +108,7 @@ const App: React.FC = () => {
   const handleLoginSuccess = () => {
     setIsAdmin(true);
     setShowAdminLogin(false);
-    showToast("Beheerdersmodus geactiveerd");
+    showToast("Beheerdersmodus geactiveerd", "success");
   };
 
   const handleSeedDatabase = async () => {
@@ -103,9 +116,12 @@ const App: React.FC = () => {
     setIsSeeding(true);
     try {
       await seedDatabase();
-      showToast("✅ Database succesvol gevuld!");
+      const updatedCourses = await fetchCourses();
+      setCourses(updatedCourses);
+      showToast("✅ Database succesvol gevuld!", "success");
     } catch (e: any) {
-      showToast("❌ Fout bij uploaden");
+      console.error("Error seeding database:", e);
+      showToast(`❌ Fout bij uploaden: ${e.message || 'Onbekende fout'}`, "error");
     } finally {
       setIsSeeding(false);
     }
@@ -148,9 +164,13 @@ const App: React.FC = () => {
   const handleSaveCourse = async (savedCourse: Course) => {
     try {
       await saveCourseToDB(savedCourse);
-      showToast(courseToEdit ? "Scholing bijgewerkt" : "Scholing toegevoegd");
-    } catch (e) {
-      showToast("Er ging iets mis bij het opslaan");
+      const updatedCourses = await fetchCourses();
+      setCourses(updatedCourses);
+      showToast(courseToEdit ? "Scholing bijgewerkt" : "Scholing toegevoegd", "success");
+    } catch (e: any) {
+      console.error('Error saving course:', e);
+      showToast(`Er ging iets mis bij het opslaan: ${e.message || 'Onbekende fout'}`, "error");
+      throw e; // Throw so AddCourseModal knows it failed
     }
   };
 
@@ -158,10 +178,12 @@ const App: React.FC = () => {
     if(window.confirm("Scholing definitief verwijderen?")) {
       try {
         await deleteCourseFromDB(id);
-        showToast("Scholing verwijderd");
+        const updatedCourses = await fetchCourses();
+        setCourses(updatedCourses);
+        showToast("Scholing verwijderd", "success");
         setIsModalOpen(false);
       } catch (e) {
-        showToast("Kan scholing niet verwijderen");
+        showToast("Kan scholing niet verwijderen", "error");
       }
     }
   };
@@ -176,6 +198,7 @@ const App: React.FC = () => {
       <Toast 
         message={toast.message} 
         isVisible={toast.isVisible} 
+        type={toast.type}
         onClose={() => setToast(prev => ({ ...prev, isVisible: false }))} 
       />
 
