@@ -132,7 +132,7 @@ const App: React.FC = () => {
 
     const processedCourses = courses.map(course => {
       if (course.date && course.date.trim() !== '' && course.date < todayStr) {
-        return { ...course, date: '' };
+        return { ...course, date: undefined };
       }
       return course;
     });

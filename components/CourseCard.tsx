@@ -26,12 +26,6 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
   const fallbackIndex = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_IMAGES.length;
   const displayImage = !hasError && course.imageUrl ? course.imageUrl : DEFAULT_IMAGES[fallbackIndex];
 
-  const badgeColor = isKVLO 
-    ? 'bg-[#7AB800]/10 text-[#5a8700] border-[#7AB800]/20' 
-    : isALO 
-      ? 'bg-[#00C1D4]/10 text-[#008d9b] border-[#00C1D4]/20'
-      : 'bg-purple-100 text-purple-700 border-purple-200';
-
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -135,11 +129,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         
         <div className="absolute bottom-4 left-4 z-20 flex flex-wrap gap-1">
-            {sortOrganizers(course.organizers).map((org, index) => (
-              <span key={index} className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-white/90 border shadow-sm ${badgeColor}`}>
+            {sortOrganizers(course.organizers).map((org, index) => {
+              const orgBadgeColor = org === 'KVLO' 
+                ? 'bg-[#ecfccb] text-[#4d7c0f] border-[#84cc16]' 
+                : org === 'ALO Nederland' 
+                  ? 'bg-[#cffafe] text-[#0891b2] border-[#06b6d4]'
+                  : 'bg-[#f3e8ff] text-[#7e22ce] border-[#d8b4fe]';
+              return (
+              <span key={index} className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border shadow-sm ${orgBadgeColor}`}>
                   {org}
               </span>
-            ))}
+            )})}
         </div>
       </div>
 

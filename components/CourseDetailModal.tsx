@@ -83,119 +83,126 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-colors"
+          className="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
 
-        {/* Hero Image Section */}
-        <div className="relative h-64 shrink-0 bg-slate-200">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
-          <img 
-            src={displayImage} 
-            alt={course.title} 
-            className="w-full h-full object-cover"
-            onError={() => setImageError(true)}
-          />
-          <div className="absolute bottom-6 left-6 right-6 z-20">
-             <div className="flex flex-wrap gap-2 mb-3">
-                {sortOrganizers(course.organizers).map((org, index) => (
-                  <span key={index} className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border backdrop-blur-sm bg-white/95 
-                    ${org === 'KVLO' ? 'text-[#5a8700] border-[#7AB800]' : org === 'ALO Nederland' ? 'text-[#008d9b] border-[#00C1D4]' : 'text-purple-700 border-purple-200'}`}>
-                    {org}
-                  </span>
-                ))}
-                {course.isNew && (
-                  <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-red-500 text-white shadow-lg shadow-red-500/30">
-                      Nieuw
-                  </span>
-                )}
-             </div>
-            <h2 className="text-3xl font-black text-white leading-tight shadow-sm">
-              {course.title}
-            </h2>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          
-          {/* Key Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="p-2.5 bg-white rounded-lg shadow-sm text-[#00C1D4]">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase">Datum</p>
-                <p className="font-semibold text-slate-800">
-                  {course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Zonder startdatum'}
-                  {course.sessions && course.sessions > 0 && (
-                    <span className="ml-2 text-sm text-slate-500 font-normal">
-                      ({course.sessions} {course.sessions === 1 ? 'bijeenkomst' : 'bijeenkomsten'})
+        {/* Scrollable Area containing Image and Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Hero Image Section */}
+          <div className="relative h-48 shrink-0 bg-slate-200">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+            <img 
+              src={displayImage} 
+              alt={course.title} 
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+            <div className="absolute bottom-6 left-6 right-6 z-20">
+               <div className="flex flex-wrap gap-2 mb-3">
+                  {sortOrganizers(course.organizers).map((org, index) => {
+                    const orgBadgeColor = org === 'KVLO' 
+                      ? 'bg-[#ecfccb] text-[#4d7c0f] border-[#84cc16]' 
+                      : org === 'ALO Nederland' 
+                        ? 'bg-[#cffafe] text-[#0891b2] border-[#06b6d4]'
+                        : 'bg-[#f3e8ff] text-[#7e22ce] border-[#d8b4fe]';
+                    return (
+                    <span key={index} className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-sm ${orgBadgeColor}`}>
+                      {org}
+                    </span>
+                  )})}
+                  {course.isNew && (
+                    <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-red-500 text-white shadow-lg shadow-red-500/30">
+                        Nieuw
                     </span>
                   )}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="p-2.5 bg-white rounded-lg shadow-sm text-[#7AB800]">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase">Locatie & Regio</p>
-                <p className="font-semibold text-slate-800">{course.location} ({course.region})</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="p-2.5 bg-white rounded-lg shadow-sm text-slate-600">
-                <Euro className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase">Kosten</p>
-                <p className="font-semibold text-slate-800">
-                  {course.price === 0 ? 'Gratis deelname' : `${formatPrice(course.price)} per persoon`}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="p-2.5 bg-white rounded-lg shadow-sm text-purple-500">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase">Organisator</p>
-                <p className="font-semibold text-slate-800">{sortOrganizers(course.organizers).join(', ')}</p>
-              </div>
+               </div>
+              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight shadow-sm">
+                {course.title}
+              </h2>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                Over deze scholing
-              </h3>
-              <p className="text-slate-600 leading-relaxed text-base">
-                {course.description}
-                <br /><br />
-                Tijdens deze bijeenkomst gaan we dieper in op de theorie en koppelen we dit direct aan de praktijk. 
-                Er is veel ruimte voor eigen inbreng en casuïstiek. Geschikt voor zowel beginnende als ervaren docenten.
-              </p>
+          {/* Content */}
+          <div className="p-6 md:p-8">
+            
+            {/* Key Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-[#00C1D4]">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Datum</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Zonder startdatum'}
+                    {course.sessions && course.sessions > 0 && (
+                      <span className="ml-1 text-xs text-slate-500 font-normal">
+                        ({course.sessions}x)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-[#7AB800]">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Locatie & Regio</p>
+                  <p className="text-sm font-semibold text-slate-800">{course.location} <span className="text-slate-500 font-normal">({course.region})</span></p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-slate-600">
+                  <Euro className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kosten</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {course.price === 0 ? 'Gratis deelname' : `${formatPrice(course.price)} p.p.`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-purple-500">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Organisator</p>
+                  <p className="text-sm font-semibold text-slate-800 line-clamp-1" title={sortOrganizers(course.organizers).join(', ')}>
+                    {sortOrganizers(course.organizers).join(', ')}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div>
-               <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                Onderwerpen
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {course.tags.map(tag => (
-                  <span key={tag} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#f1f5f9] text-slate-600 border border-slate-200">
-                    <Tag className="w-3 h-3 text-slate-400" />
-                    {tag}
-                  </span>
-                ))}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                  Over deze scholing
+                </h3>
+                <p className="text-slate-600 leading-relaxed text-sm md:text-base">
+                  {course.description}
+                </p>
+              </div>
+
+              <div>
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  Onderwerpen
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {course.tags.map(tag => (
+                    <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f1f5f9] text-slate-600 border border-slate-200">
+                      <Tag className="w-3 h-3 text-slate-400" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

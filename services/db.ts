@@ -14,7 +14,7 @@ const mapFromSupabase = (row: any): Course => {
     id: row.id,
     title: row.title,
     description: row.description,
-    date: row.date,
+    date: row.date || undefined,
     price: row.price,
     sessions: row.sessions,
     location: row.location || 'Onbekend',
@@ -30,7 +30,7 @@ const mapToSupabase = (course: Course) => {
   const data: any = {
     title: course.title,
     description: course.description,
-    date: course.date,
+    date: course.date && course.date.trim() !== '' ? course.date : null,
     price: course.price,
     sessions: course.sessions,
     location: course.location,

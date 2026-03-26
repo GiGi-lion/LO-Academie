@@ -98,6 +98,14 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     if (showCustomOrganizer && customOrganizer.trim()) {
       finalOrganizers.push(customOrganizer.trim());
     }
+
+    // Check for specific ALOs and add 'ALO Nederland'
+    const aloInstitutes = ['HAN', 'Fontys', 'HHS', 'HvA', 'Windesheim', 'Hanze'];
+    const hasAloInstitute = finalOrganizers.some(org => aloInstitutes.includes(org));
+    if (hasAloInstitute && !finalOrganizers.includes('ALO Nederland')) {
+      finalOrganizers.push('ALO Nederland');
+    }
+
     // Remove duplicates
     finalOrganizers = [...new Set(finalOrganizers)];
 

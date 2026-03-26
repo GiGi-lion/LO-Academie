@@ -1,6 +1,6 @@
 export const ORGANIZERS = [
-  'KVLO',
   'ALO Nederland',
+  'KVLO',
   'Fontys',
   'HAN',
   'Hanze',
@@ -12,8 +12,8 @@ export const ORGANIZERS = [
 export const sortOrganizers = (organizers: string[] | undefined): string[] => {
   if (!organizers) return [];
   return [...organizers].sort((a, b) => {
-    const priorityA = a === 'KVLO' ? 1 : a === 'ALO Nederland' ? 2 : 3;
-    const priorityB = b === 'KVLO' ? 1 : b === 'ALO Nederland' ? 2 : 3;
+    const priorityA = a === 'ALO Nederland' ? 1 : a === 'KVLO' ? 2 : 3;
+    const priorityB = b === 'ALO Nederland' ? 1 : b === 'KVLO' ? 2 : 3;
     if (priorityA !== priorityB) return priorityA - priorityB;
     return a.localeCompare(b);
   });
