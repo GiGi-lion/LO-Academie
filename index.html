@@ -53,57 +53,43 @@
     
     <!-- ERROR TRAP (Runtime Errors) -->
     <script>
-      function handleSupabaseError(message) {
-        if (message && (message.includes('Refresh Token Not Found') || message.includes('Invalid Refresh Token'))) {
-          console.warn("Supabase refresh token error detected. Clearing local storage and reloading...");
-          let cleared = false;
-          try {
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-              const key = localStorage.key(i);
-              if (key && key.startsWith('sb-')) {
-                keysToRemove.push(key);
-              }
-            }
-            keysToRemove.forEach(k => {
-              localStorage.removeItem(k);
-              cleared = true;
-            });
-          } catch (e) {}
-          
-          if (cleared) {
-            window.location.reload();
-            return true;
-          }
-        }
-        return false;
-      }
-
       window.addEventListener('error', function(event) {
-        if (handleSupabaseError(event.message)) {
-          event.preventDefault();
-          return;
-        }
-
         const root = document.getElementById('root');
-        // Alleen tonen als root leeg is (app niet geladen)
-        if (root && root.innerHTML.trim() === '') {
+        if (root) {
            console.error("Critical Start Error:", event.error);
            root.innerHTML = `
-            <div style="padding: 20px; color: #ef4444; font-family: sans-serif; text-align: center; margin-top: 50px;">
+            <div style="padding: 20px; color: #ef4444; font-family: sans-serif; text-align: left; margin-top: 50px;">
               <h2 style="font-size: 24px; margin-bottom: 10px;">⚠️ Oeps, er ging iets mis</h2>
-              <p>De applicatie kon niet starten.</p>
-              <pre style="background: #eee; padding: 10px; border-radius: 8px; text-align: left; display: inline-block; margin-top: 20px; font-size: 12px;">${event.message}</pre>
+              <p>De applicatie kon niet starten. Hier zijn de specifieke details:</p>
+              <pre style="background: #eee; padding: 10px; border-radius: 8px; overflow: auto; font-size: 12px;">
+Message: ${event.message}
+Error Object: ${event.error ? JSON.stringify(event.error, Object.getOwnPropertyNames(event.error), 2) : 'N/A'}
+Stack: ${event.error && event.error.stack ? event.error.stack : 'N/A'}
+LocalStorage Keys: ${Object.keys(localStorage).join(', ')}
+              </pre>
+              <button onclick="localStorage.clear(); window.location.reload();" style="margin-top: 15px; padding: 10px 15px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">Wis Geheugen & Herlaad</button>
             </div>
           `;
         }
       });
 
       window.addEventListener('unhandledrejection', function(event) {
-        if (event.reason && event.reason.message) {
-          if (handleSupabaseError(event.reason.message)) {
-            event.preventDefault();
-          }
+        const root = document.getElementById('root');
+        if (root) {
+           console.error("Unhandled Rejection:", event.reason);
+           root.innerHTML = `
+            <div style="padding: 20px; color: #ef4444; font-family: sans-serif; text-align: left; margin-top: 50px;">
+              <h2 style="font-size: 24px; margin-bottom: 10px;">⚠️ Oeps, er ging iets mis (Promise Rejection)</h2>
+              <p>De applicatie kon niet starten. Hier zijn de specifieke details:</p>
+              <pre style="background: #eee; padding: 10px; border-radius: 8px; overflow: auto; font-size: 12px;">
+Reason: ${event.reason}
+Message: ${event.reason && event.reason.message ? event.reason.message : 'N/A'}
+Stack: ${event.reason && event.reason.stack ? event.reason.stack : 'N/A'}
+LocalStorage Keys: ${Object.keys(localStorage).join(', ')}
+              </pre>
+              <button onclick="localStorage.clear(); window.location.reload();" style="margin-top: 15px; padding: 10px 15px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">Wis Geheugen & Herlaad</button>
+            </div>
+          `;
         }
       });
     </script>
