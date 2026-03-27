@@ -53,22 +53,39 @@ const App: React.FC = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error("Supabase getSession error:", error);
         if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
           // Clear invalid session
-          supabase.auth.signOut().catch(console.error);
+          try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('sb-')) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+          } catch (e) {}
+          supabase.auth.signOut().catch(() => {});
+        } else {
+          console.error("Supabase getSession error:", error);
         }
       }
       setIsAdmin(!!session);
     }).catch(err => {
-      console.error("Supabase getSession exception:", err);
+      if (err && err.message && (err.message.includes("Refresh Token Not Found") || err.message.includes("Invalid Refresh Token"))) {
+        // Suppress
+      } else {
+        console.error("Supabase getSession exception:", err);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAdmin(!!session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Subscribe to DB updates
@@ -107,7 +124,11 @@ const App: React.FC = () => {
 
   const handleAdminToggle = async () => {
     if (isAdmin) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Error signing out:", e);
+      }
       showToast("Beheerdersmodus uitgeschakeld", "success");
     } else {
       setShowAdminLogin(true);
