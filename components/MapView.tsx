@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Course, sortOrganizers } from '../types';
 import * as L from 'leaflet';
+import { formatPrice } from '../constants';
 
 interface MapViewProps {
   courses: Course[];
@@ -51,7 +52,7 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
     const map = L.map(mapContainerRef.current, {
         zoomControl: false,
         attributionControl: false,
-        scrollWheelZoom: false, // Prevent page scroll hijacking
+        scrollWheelZoom: true, // Enable zoom with scroll wheel
         preferCanvas: true
     }).setView([52.1326, 5.2913], 7);
 
@@ -142,15 +143,30 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         
         // Header
         const header = document.createElement('div');
-        header.className = 'flex items-center justify-between mb-2';
-        header.innerHTML = `
-            <span class="text-[10px] font-black uppercase tracking-wider ${isKVLO ? 'text-[#7AB800]' : isALO ? 'text-[#00C1D4]' : 'text-purple-600'}">
-                ${sortOrganizers(course.organizers).join(', ')}
-            </span>
-            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                ${course.region}
-            </span>
-        `;
+        header.className = 'flex items-center justify-between mb-3 gap-2';
+        
+        const organizersContainer = document.createElement('div');
+        organizersContainer.className = 'flex flex-wrap gap-1';
+        
+        sortOrganizers(course.organizers).forEach(org => {
+            const span = document.createElement('span');
+            const orgBadgeColor = org === 'KVLO' 
+                ? 'bg-[#ecfccb] text-[#4d7c0f] border-[#84cc16]' 
+                : org === 'ALO Nederland' 
+                  ? 'bg-[#cffafe] text-[#0891b2] border-[#06b6d4]'
+                  : 'bg-[#f3e8ff] text-[#7e22ce] border-[#d8b4fe]';
+            span.className = `px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border shadow-sm ${orgBadgeColor}`;
+            span.textContent = org;
+            organizersContainer.appendChild(span);
+        });
+        
+        header.appendChild(organizersContainer);
+
+        const regionBadge = document.createElement('span');
+        regionBadge.className = 'text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 whitespace-nowrap';
+        regionBadge.textContent = course.region;
+        header.appendChild(regionBadge);
+        
         popupContent.appendChild(header);
 
         // Title
@@ -159,15 +175,33 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         title.textContent = course.title;
         popupContent.appendChild(title);
 
+        // Meta Info (Price & Location)
+        const meta = document.createElement('div');
+        meta.className = 'flex items-center justify-between mb-3 text-xs';
+        meta.innerHTML = `
+            <span class="font-black text-[#7AB800]">${formatPrice(course.price)}</span>
+            <span class="text-slate-500 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${course.location}
+            </span>
+        `;
+        popupContent.appendChild(meta);
+
         // Date Info
         const info = document.createElement('div');
-        info.className = 'flex items-center gap-2 text-xs text-slate-500 font-medium pb-3 border-b border-slate-50 mb-3';
+        info.className = 'flex items-center gap-2 text-xs text-slate-500 font-medium pb-2 border-b border-slate-50 mb-2';
         const dateString = course.date && course.date.trim() !== '' ? new Date(course.date).toLocaleDateString('nl-NL') : 'Zonder startdatum';
         info.innerHTML = `
              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
              <span>${dateString}</span>
         `;
         popupContent.appendChild(info);
+
+        // Description snippet
+        const desc = document.createElement('p');
+        desc.className = 'text-slate-500 text-[11px] mb-4 line-clamp-2 leading-relaxed';
+        desc.textContent = course.description;
+        popupContent.appendChild(desc);
 
         // Button
         const btn = document.createElement('button');

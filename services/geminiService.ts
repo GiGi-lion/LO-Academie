@@ -31,7 +31,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
       config: {
         tools: [{ urlContext: {} }],
@@ -86,7 +86,7 @@ export const suggestTags = async (title: string, description: string): Promise<s
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
     });
 
@@ -124,7 +124,7 @@ export const suggestImage = async (title: string, description: string, available
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
     });
 
@@ -141,8 +141,8 @@ export const suggestImage = async (title: string, description: string, available
 
 export const getSmartRecommendations = async (userQuery: string, availableCourses: Course[]): Promise<string> => {
   try {
-    // Haal API key op. We ondersteunen zowel Vite's import.meta.env als process.env
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Haal API key op. We ondersteunen zowel GEMINI_API_KEY als API_KEY
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
         console.warn("Gemini API Key ontbreekt in environment variables.");
@@ -163,12 +163,12 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     })));
 
     const prompt = `
-      Je bent de 'LO Academie Assistent', de slimme gids voor de scholingskalender van KVLO en ALO Nederland.
+      Je bent de 'LO Academie Assistent', de gids voor de scholingskalender van KVLO en ALO Nederland.
       
       Jouw doelen:
-      1. Help docenten de juiste bijscholing te vinden.
-      2. Geef context over vaktermen (bijv. MRT, BSM, bewegend leren) als daarom gevraagd wordt, gebruik hiervoor Google Search.
-      3. Wees enthousiast over het vak bewegingsonderwijs.
+      1. Help docenten en professionals bij het vinden van de juiste bijscholing.
+      2. Geef deskundige context over vaktermen (bijv. MRT, BSM, bewegend leren) indien hierom gevraagd wordt, gebruik hiervoor Google Search.
+      3. Communiceer op een vriendelijke, behulpzame en deskundige wijze.
 
       Hier is de lijst met ACTUELE cursussen in onze database (JSON):
       ${courseContext}
@@ -176,22 +176,22 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       De gebruiker vraagt: "${userQuery}"
 
       Richtlijnen voor je antwoord:
-      - **GEBRUIK OPMAAK:** Maak je antwoord visueel aantrekkelijk.
-      - Gebruik **dikgedrukte tekst** voor namen van cursussen, datums en belangrijke begrippen.
-      - Gebruik lijstjes (bulletpoints) als je meerdere opties noemt.
-      - Gebruik kopjes (### Koptekst) om structuur aan te brengen als het antwoord lang is.
-      - Als de gebruiker zoekt naar een cursus: Zoek in de JSON en beveel 1-3 opties aan. Noem titel, datum en locatie.
-      - Als de gebruiker een algemene vraag stelt (bijv. "Wat is BSM?"): Gebruik Google Search om een korte, correcte definitie te geven en kijk DAN of er cursussen over zijn.
-      - Als er geen cursus gevonden is: Zeg dit eerlijk, maar bied aan om algemene info over het onderwerp te zoeken of stel een alternatief voor.
-      - Spreek de gebruiker aan met "je/jij".
-      - Houd het beknopt (max 150 woorden).
+      - **GEBRUIK OPMAAK:** Maak je antwoord visueel overzichtelijk en professioneel.
+      - Gebruik **dikgedrukte tekst** voor namen van cursussen, datums en kernbegrippen.
+      - Gebruik opsommingstekens indien je meerdere opties presenteert.
+      - Gebruik kopjes (### Koptekst) voor een heldere structuur.
+      - Indien de gebruiker zoekt naar een cursus: Analyseer de JSON en adviseer 1-3 relevante opties. Vermeld titel, datum en locatie.
+      - Indien de gebruiker een algemene vraag stelt: Gebruik Google Search voor een beknopte, correcte definitie en koppel dit aan relevante cursussen uit de database.
+      - Indien er geen passende cursus gevonden wordt: Meld dit vriendelijk en bied aan om algemene informatie te zoeken of adviseer een alternatief.
+      - Spreek de gebruiker altijd aan met "je" (informele maar professionele omgangsvorm).
+      - Houd het antwoord beknopt en to-the-point (maximaal 150 woorden).
 
       Antwoord nu:
     `;
 
-    // Gebruik de 'gemini-3-flash-preview' model zoals voorgeschreven voor basistaken met grounding
+    // Gebruik de 'gemini-3.1-flash-lite-preview' model zoals gevraagd
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }] // Enable Grounding with Google Search

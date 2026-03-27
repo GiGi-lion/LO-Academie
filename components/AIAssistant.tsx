@@ -77,19 +77,19 @@ const MarkdownText: React.FC<{ text: string; isUser: boolean }> = ({ text, isUse
 const WIZARD_STEPS = [
   {
     id: 1,
-    title: "Wat is je rol?",
+    title: "Wat is je professionele rol?",
     icon: <User className="w-5 h-5" />,
     options: ["PO Docent", "VO Docent", "MBO/HBO Docent", "Student / Starter", "Anders"]
   },
   {
     id: 2,
-    title: "Waar wil je op focussen?",
+    title: "Waarop wil je focussen?",
     icon: <Target className="w-5 h-5" />,
     options: ["Vakinhoudelijke verdieping", "Didactiek & Pedagogiek", "Persoonlijke groei", "Netwerken"]
   },
   {
     id: 3,
-    title: "Voorkeur voor locatie?",
+    title: "Wat is je voorkeur voor locatie?",
     icon: <MapPin className="w-5 h-5" />,
     options: ["Geen voorkeur", "Midden-Nederland", "Bij mij in de buurt", "Online"]
   }
@@ -127,7 +127,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
   const startChat = () => {
     setMode('chat');
     if (messages.length === 0) {
-       setMessages([{ role: 'model', text: 'Stel me gerust een vraag over het scholingsaanbod!' }]);
+       setMessages([{ role: 'model', text: 'Je kunt hier je vragen stellen over het actuele scholingsaanbod.' }]);
     }
   };
 
@@ -148,19 +148,25 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
       setMode('chat');
       setLoading(true);
       
-      const prompt = `
-        Ik ben een **${newAnswers[0]}** en ik wil graag werken aan **${newAnswers[1]}**.
-        Mijn voorkeur voor locatie is: **${newAnswers[2]}**.
-        
-        Maak een kort en persoonlijk scholingsadvies voor mij op basis van het huidige aanbod.
-      `;
+      try {
+        const prompt = `
+          De gebruiker is een **${newAnswers[0]}** en wil focussen op **${newAnswers[1]}**.
+          De voorkeur voor locatie is: **${newAnswers[2]}**.
+          
+          Formuleer een passend scholingsadvies op basis van het huidige aanbod.
+        `;
 
-      // Show the formulated query as a user message
-      setMessages(prev => [...prev, { role: 'user', text: `Advies voor: ${newAnswers[0]}, Focus: ${newAnswers[1]}, Regio: ${newAnswers[2]}` }]);
-      
-      const response = await getSmartRecommendations(prompt, courses);
-      setMessages(prev => [...prev, { role: 'model', text: response }]);
-      setLoading(false);
+        // Show the formulated query as a user message
+        setMessages(prev => [...prev, { role: 'user', text: `Advies voor: ${newAnswers[0]}, Focus: ${newAnswers[1]}, Regio: ${newAnswers[2]}` }]);
+        
+        const response = await getSmartRecommendations(prompt, courses);
+        setMessages(prev => [...prev, { role: 'model', text: response }]);
+      } catch (error) {
+        console.error("Wizard Error:", error);
+        setMessages(prev => [...prev, { role: 'model', text: "Er is een fout opgetreden bij het genereren van je advies. Probeer het later opnieuw." }]);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -170,9 +176,15 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
     setLoading(true);
-    const response = await getSmartRecommendations(userText, courses);
-    setMessages(prev => [...prev, { role: 'model', text: response }]);
-    setLoading(false);
+    try {
+      const response = await getSmartRecommendations(userText, courses);
+      setMessages(prev => [...prev, { role: 'model', text: response }]);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages(prev => [...prev, { role: 'model', text: "Er is een fout opgetreden bij het ophalen van een antwoord. Controleer je verbinding." }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -239,9 +251,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
                   <div className="w-20 h-20 bg-white rounded-full shadow-xl mb-6 flex items-center justify-center text-[#00C1D4]">
                      <GraduationCap className="w-10 h-10" />
                   </div>
-                  <h2 className="text-xl font-black text-slate-800 mb-2">Hulp nodig bij kiezen?</h2>
+                  <h2 className="text-xl font-black text-slate-800 mb-2">Hulp nodig bij je keuze?</h2>
                   <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-                    Ik kan je helpen de perfecte bijscholing te vinden op basis van jouw profiel, of je kunt me gewoon een vraag stellen.
+                    Ik adviseer je graag bij het vinden van de passende bijscholing op basis van je profiel. Daarnaast kun je hier terecht voor al je vakinhoudelijke vragen.
                   </p>
                   
                   <div className="space-y-3 w-full">
