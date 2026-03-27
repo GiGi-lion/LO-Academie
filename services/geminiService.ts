@@ -202,9 +202,6 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     return text;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    const keyType = typeof process.env.GEMINI_API_KEY;
-    const apiKeyType = typeof process.env.API_KEY;
-    const viteKeyType = typeof import.meta.env.VITE_GEMINI_API_KEY;
-    return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Foutmelding: ${error.message || error}. (Debug: GEMINI_API_KEY is ${keyType}, API_KEY is ${apiKeyType}, VITE_GEMINI_API_KEY is ${viteKeyType}). Controleer je internetverbinding of probeer de gewone zoekfilters.`;
+    return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Controleer je internetverbinding of probeer de gewone zoekfilters.`;
   }
 };
