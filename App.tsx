@@ -262,7 +262,7 @@ const App: React.FC = () => {
             sortOption={sortOption}
             setSortOption={setSortOption}
             allTags={allTags}
-            favoritesCount={favorites.length}
+            favoritesCount={favorites.filter(id => courses.some(c => c.id === id)).length}
             showOnlyFavorites={showOnlyFavorites}
             setShowOnlyFavorites={setShowOnlyFavorites}
             isOpenMobile={showMobileFilters}

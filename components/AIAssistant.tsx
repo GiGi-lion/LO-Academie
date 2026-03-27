@@ -208,10 +208,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
         ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none translate-y-20'}
         
         /* Mobile Styles */
-        inset-0 w-full h-full rounded-none
+        top-4 left-4 right-4 bottom-4 rounded-2xl
         
         /* Desktop Styles */
-        md:inset-auto md:bottom-6 md:right-6 md:w-[400px] md:h-[600px] md:rounded-3xl
+        md:top-auto md:left-auto md:bottom-6 md:right-6 md:w-[400px] md:h-[600px] md:rounded-3xl
       `}>
         
         {/* Header */}
