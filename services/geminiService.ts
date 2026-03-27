@@ -200,8 +200,8 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     }
 
     return text;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return "Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Controleer je internetverbinding of probeer de gewone zoekfilters.";
+    return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Foutmelding: ${error.message || error}. Controleer je internetverbinding of probeer de gewone zoekfilters.`;
   }
 };
