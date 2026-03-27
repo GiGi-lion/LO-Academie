@@ -170,9 +170,9 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       Antwoord nu:
     `;
 
-    // Gebruik de 'gemini-3.1-flash-lite-preview' model zoals gevraagd
+    // Gebruik de 'gemini-3-flash-preview' model in plaats van lite, omdat lite geen googleSearch ondersteunt
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }] // Enable Grounding with Google Search
