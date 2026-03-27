@@ -53,7 +53,38 @@
     
     <!-- ERROR TRAP (Runtime Errors) -->
     <script>
+      function handleSupabaseError(message) {
+        if (message && (message.includes('Refresh Token Not Found') || message.includes('Invalid Refresh Token'))) {
+          console.warn("Supabase refresh token error detected. Clearing local storage and reloading...");
+          let cleared = false;
+          try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('sb-')) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(k => {
+              localStorage.removeItem(k);
+              cleared = true;
+            });
+          } catch (e) {}
+          
+          if (cleared) {
+            window.location.reload();
+            return true;
+          }
+        }
+        return false;
+      }
+
       window.addEventListener('error', function(event) {
+        if (handleSupabaseError(event.message)) {
+          event.preventDefault();
+          return;
+        }
+
         const root = document.getElementById('root');
         // Alleen tonen als root leeg is (app niet geladen)
         if (root && root.innerHTML.trim() === '') {
@@ -65,6 +96,14 @@
               <pre style="background: #eee; padding: 10px; border-radius: 8px; text-align: left; display: inline-block; margin-top: 20px; font-size: 12px;">${event.message}</pre>
             </div>
           `;
+        }
+      });
+
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && event.reason.message) {
+          if (handleSupabaseError(event.reason.message)) {
+            event.preventDefault();
+          }
         }
       });
     </script>
