@@ -51,8 +51,17 @@ const App: React.FC = () => {
 
   // Check session on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Supabase getSession error:", error);
+        if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
+          // Clear invalid session
+          supabase.auth.signOut().catch(console.error);
+        }
+      }
       setIsAdmin(!!session);
+    }).catch(err => {
+      console.error("Supabase getSession exception:", err);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
