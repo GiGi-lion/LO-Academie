@@ -22,7 +22,13 @@ const App: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('alo_kvlo_favorites');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("Error parsing favorites from localStorage", e);
+      return [];
+    }
   });
 
   const [filters, setFilters] = useState<SearchFilters>({

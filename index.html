@@ -11,12 +11,7 @@
     
     <!-- SYSTEM POLYFILLS VOOR BROWSER -->
     <script>
-      // Zorg dat window.process bestaat voor libraries die dit checken
-      window.process = { 
-        env: { 
-          NODE_ENV: 'production' 
-        } 
-      };
+      // Removed process polyfill as it can cause issues with some libraries
     </script>
 
     <style>
@@ -31,20 +26,6 @@
       .leaflet-popup-close-button { top: 8px !important; right: 8px !important; color: #94a3b8 !important; width: 24px !important; height: 24px !important; display: flex !important; align-items: center; justify-content: center; border-radius: 50%; background: white !important; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; }
       .leaflet-popup-close-button:hover { background-color: #f1f5f9 !important; color: #ef4444 !important; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "leaflet": "https://esm.sh/leaflet@^1.9.4"
-  }
-}
-</script>
 <link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
