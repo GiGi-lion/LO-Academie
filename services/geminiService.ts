@@ -6,13 +6,7 @@ import { Course } from '../types';
 
 export const extractCourseFromUrl = async (url: string): Promise<Partial<Course> | null> => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "undefined" || apiKey === "") {
-        console.warn("Gemini API Key ontbreekt.");
-        return null;
-    }
-
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const prompt = `
       Je bent een expert in het extraheren van cursusinformatie uit webpagina's.
@@ -102,12 +96,7 @@ export const suggestTags = async (title: string, description: string): Promise<s
 
 export const suggestImage = async (title: string, description: string, availableImages: string[]): Promise<string> => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "undefined" || apiKey === "") {
-        return availableImages[Math.floor(Math.random() * availableImages.length)];
-    }
-
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const prompt = `
       Je bent een expert in het selecteren van relevante afbeeldingen voor cursussen lichamelijke opvoeding en bewegingsonderwijs.
@@ -141,16 +130,8 @@ export const suggestImage = async (title: string, description: string, available
 
 export const getSmartRecommendations = async (userQuery: string, availableCourses: Course[]): Promise<string> => {
   try {
-    // Haal API key op. We ondersteunen zowel GEMINI_API_KEY als API_KEY
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-
-    if (!apiKey || apiKey === "undefined" || apiKey === "") {
-        console.warn("Gemini API Key ontbreekt in environment variables.");
-        return "Ik kan helaas geen slimme aanbevelingen doen omdat mijn AI-sleutel ontbreekt. De beheerder moet de GEMINI_API_KEY instellen in de configuratie.";
-    }
-
     // Lazy initialization met de key
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const courseContext = JSON.stringify(availableCourses.map(c => ({
       id: c.id,

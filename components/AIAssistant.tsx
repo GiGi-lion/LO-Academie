@@ -211,7 +211,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
         top-4 left-4 right-4 bottom-4 rounded-2xl
         
         /* Desktop Styles */
-        md:top-auto md:left-auto md:bottom-6 md:right-6 md:w-[400px] md:h-[600px] md:rounded-3xl
+        md:top-auto md:left-auto md:bottom-6 md:right-6 md:w-[400px] md:h-[600px] md:max-h-[calc(100vh-48px)] md:rounded-3xl
       `}>
         
         {/* Header */}
