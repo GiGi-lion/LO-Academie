@@ -1,12 +1,30 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Course } from '../types';
 
+// Helper function to safely get the API key without throwing ReferenceError in the browser
+const getApiKey = (): string => {
+  try {
+    if (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) {
+      return import.meta.env.VITE_GEMINI_API_KEY;
+    }
+  } catch (e) {}
+  
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
+      return process.env.GEMINI_API_KEY;
+    }
+  } catch (e) {}
+  
+  return "";
+};
+
 // We initialiseren de client NIET hier, maar pas in de functie. 
 // Dit voorkomt dat de app crasht bij het laden (White Screen) als de API Key mist of de env nog niet geladen is.
 
 export const extractCourseFromUrl = async (url: string): Promise<Partial<Course> | null> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = getApiKey();
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
       Je bent een expert in het extraheren van cursusinformatie uit webpagina's.
@@ -59,7 +77,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
 
 export const suggestTags = async (title: string, description: string): Promise<string[]> => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
         console.warn("Gemini API Key ontbreekt.");
         return [];
@@ -96,7 +114,8 @@ export const suggestTags = async (title: string, description: string): Promise<s
 
 export const suggestImage = async (title: string, description: string, availableImages: string[]): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = getApiKey();
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
       Je bent een expert in het selecteren van relevante afbeeldingen voor cursussen lichamelijke opvoeding en bewegingsonderwijs.
@@ -131,7 +150,8 @@ export const suggestImage = async (title: string, description: string, available
 export const getSmartRecommendations = async (userQuery: string, availableCourses: Course[]): Promise<string> => {
   try {
     // Lazy initialization met de key
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = getApiKey();
+    const ai = new GoogleGenAI({ apiKey });
 
     const courseContext = JSON.stringify(availableCourses.map(c => ({
       id: c.id,
