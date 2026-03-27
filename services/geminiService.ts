@@ -18,6 +18,29 @@ const getApiKey = (): string => {
   return "";
 };
 
+// Helper function for exponential backoff retries
+const withRetry = async <T>(operation: () => Promise<T>, maxRetries = 3, baseDelay = 1000): Promise<T> => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      attempt++;
+      const errorMessage = error?.message || String(error);
+      const isUnavailable = errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('high demand');
+      
+      if (isUnavailable && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.warn(`Gemini API unavailable (503). Retrying in ${delay}ms (Attempt ${attempt}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Max retries reached");
+};
+
 // We initialiseren de client NIET hier, maar pas in de functie. 
 // Dit voorkomt dat de app crasht bij het laden (White Screen) als de API Key mist of de env nog niet geladen is.
 
@@ -42,7 +65,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
       - tags: Een array van 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag, bijv. "PO", "VO", "Didactiek", "BSM").
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
       config: {
@@ -64,13 +87,17 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
           required: ["title", "description", "location", "price", "sessions", "organizers", "region", "tags"]
         }
       }
-    });
+    }));
 
     const text = response.text || "";
     const data = JSON.parse(text);
     return data;
-  } catch (error) {
-    console.error("Gemini API Error (extractCourseFromUrl):", error);
+  } catch (error: any) {
+    console.error("Gemini API Error (extractCourseFromUrl):", error?.message || error);
+    // Return a specific error object or null so the UI can handle it
+    if (error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+       throw new Error("De AI-service is momenteel erg druk. Probeer het over een paar minuten nog eens.");
+    }
     return null;
   }
 };
@@ -97,10 +124,10 @@ export const suggestTags = async (title: string, description: string): Promise<s
       Tags:
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
-    });
+    }));
 
     const text = response.text || "";
     // Split by comma, trim whitespace, and filter out empty strings
@@ -131,10 +158,10 @@ export const suggestImage = async (title: string, description: string, available
       Gekozen URL:
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
-    });
+    }));
 
     const text = response.text?.trim() || "";
     if (availableImages.includes(text)) {
@@ -191,13 +218,13 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     `;
 
     // Gebruik de 'gemini-3-flash-preview' model in plaats van lite, omdat lite geen googleSearch ondersteunt
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }] // Enable Grounding with Google Search
       }
-    });
+    }));
 
     let text = response.text || "Sorry, ik kon op dit moment geen antwoord genereren. Probeer het later opnieuw.";
 
@@ -221,7 +248,10 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
 
     return text;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini API Error:", error?.message || error);
+    if (error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+       return "De AI-service is momenteel erg druk. Probeer het over een paar minuten nog eens.";
+    }
     return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Controleer je internetverbinding of probeer de gewone zoekfilters.`;
   }
 };

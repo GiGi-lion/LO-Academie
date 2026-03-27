@@ -192,9 +192,9 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       } else {
         alert('Kon geen gegevens extraheren van deze URL. Controleer of de URL toegankelijk is.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fout bij automatisch invullen:', error);
-      alert('Er is een fout opgetreden bij het automatisch invullen.');
+      alert(error?.message || 'Er is een fout opgetreden bij het automatisch invullen.');
     } finally {
       setIsExtractingUrl(false);
     }
