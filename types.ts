@@ -27,7 +27,7 @@ export interface Course {
   sessions?: number; // Number of meetings/sessions
   location: string;
   region: string;
-  price: number;
+  price?: number | null;
   description: string;
   tags: string[];
   url: string;

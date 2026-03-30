@@ -10,8 +10,9 @@ const getApiKey = (): string => {
   } catch (e) {}
   
   try {
-    if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
-      return process.env.GEMINI_API_KEY;
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+      if (process.env.API_KEY) return process.env.API_KEY;
     }
   } catch (e) {}
   
@@ -26,8 +27,8 @@ const withRetry = async <T>(operation: () => Promise<T>, maxRetries = 3, baseDel
       return await operation();
     } catch (error: any) {
       attempt++;
-      const errorMessage = error?.message || String(error);
-      const isUnavailable = errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('high demand');
+      const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
+      const isUnavailable = errorString.includes('503') || errorString.includes('UNAVAILABLE') || errorString.includes('high demand');
       
       if (isUnavailable && attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt - 1);
@@ -58,7 +59,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
       - description: Een duidelijke omschrijving van de scholing. BELANGRIJK: Als uit de originele tekst niet direct duidelijk is waarom deze scholing relevant is voor het beroep of werkveld van bewegingsonderwijs (PO) of lichamelijke opvoeding (VO), voeg dan zelf een of twee zinnen toe aan de omschrijving om deze relevantie te verduidelijken.
       - date: De startdatum in YYYY-MM-DD formaat. Als er geen specifieke datum is, laat dit veld dan leeg ("").
       - location: De locatie waar de scholing plaatsvindt
-      - price: De prijs in euro's (alleen het getal, bijv. 150)
+      - price: De prijs in euro's (alleen het getal, bijv. 150). Laat leeg of gebruik null als de prijs (nog) niet bekend is.
       - sessions: Het aantal bijeenkomsten (een getal, standaard 1)
       - organizers: Een array van organisatoren. Kies uit: "KVLO", "ALO Nederland", "Fontys", "HAN", "Hanze", "HHS", "HvA", "Windesheim". Als er een andere organisator is, voeg die dan ook toe aan de array.
       - region: De regio (bijv. "Noord", "Oost", "Zuid", "West", "Midden", "Landelijk")
@@ -78,13 +79,13 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
             description: { type: Type.STRING },
             date: { type: Type.STRING },
             location: { type: Type.STRING },
-            price: { type: Type.NUMBER },
+            price: { type: Type.NUMBER, description: "De prijs in euro's. Gebruik null als de prijs niet bekend is." },
             sessions: { type: Type.NUMBER },
             organizers: { type: Type.ARRAY, items: { type: Type.STRING } },
             region: { type: Type.STRING },
             tags: { type: Type.ARRAY, items: { type: Type.STRING } }
           },
-          required: ["title", "description", "location", "price", "sessions", "organizers", "region", "tags"]
+          required: ["title", "description", "location", "sessions", "organizers", "region", "tags"]
         }
       }
     }));
@@ -93,10 +94,14 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
     const data = JSON.parse(text);
     return data;
   } catch (error: any) {
-    console.error("Gemini API Error (extractCourseFromUrl):", error?.message || error);
+    const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
+    console.error("Gemini API Error (extractCourseFromUrl):", errorString);
     // Return a specific error object or null so the UI can handle it
-    if (error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+    if (errorString.includes('503') || errorString.includes('UNAVAILABLE') || errorString.includes('high demand')) {
        throw new Error("De AI-service is momenteel erg druk. Probeer het over een paar minuten nog eens.");
+    }
+    if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED') || errorString.includes('spending cap')) {
+       throw new Error("De Gemini API limiet (spending cap) is bereikt. Probeer het later opnieuw of neem contact op met de beheerder.");
     }
     return null;
   }
@@ -133,8 +138,9 @@ export const suggestTags = async (title: string, description: string): Promise<s
     // Split by comma, trim whitespace, and filter out empty strings
     const tags = text.split(',').map(t => t.trim()).filter(t => t.length > 0);
     return tags;
-  } catch (error) {
-    console.error("Gemini API Error (suggestTags):", error);
+  } catch (error: any) {
+    const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
+    console.error("Gemini API Error (suggestTags):", errorString);
     return [];
   }
 };
@@ -168,8 +174,9 @@ export const suggestImage = async (title: string, description: string, available
       return text;
     }
     return availableImages[Math.floor(Math.random() * availableImages.length)];
-  } catch (error) {
-    console.error("Gemini API Error (suggestImage):", error);
+  } catch (error: any) {
+    const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
+    console.error("Gemini API Error (suggestImage):", errorString);
     return availableImages[Math.floor(Math.random() * availableImages.length)];
   }
 };
@@ -195,7 +202,7 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       
       Jouw doelen:
       1. Help docenten en professionals bij het vinden van de juiste bijscholing.
-      2. Geef deskundige context over vaktermen (bijv. MRT, BSM, bewegend leren) indien hierom gevraagd wordt, gebruik hiervoor Google Search.
+      2. Geef deskundige context over vaktermen (bijv. MRT, BSM, bewegend leren) op basis van je eigen kennis.
       3. Communiceer op een vriendelijke, behulpzame en deskundige wijze.
 
       Hier is de lijst met ACTUELE cursussen in onze database (JSON):
@@ -209,48 +216,31 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       - Gebruik opsommingstekens indien je meerdere opties presenteert.
       - Gebruik kopjes (### Koptekst) voor een heldere structuur.
       - Indien de gebruiker zoekt naar een cursus: Analyseer de JSON en adviseer 1-3 relevante opties. Vermeld titel, datum en locatie.
-      - Indien de gebruiker een algemene vraag stelt: Gebruik Google Search voor een beknopte, correcte definitie en koppel dit aan relevante cursussen uit de database.
-      - Indien er geen passende cursus gevonden wordt: Meld dit vriendelijk en bied aan om algemene informatie te zoeken of adviseer een alternatief.
+      - **BELANGRIJK:** Maak van elke aanbevolen cursus een klikbare link met het exacte format: [Titel van Cursus](course:ID_VAN_DE_CURSUS). Gebruik hiervoor het 'id' veld uit de JSON. Bijvoorbeeld: [Basiscursus Turnen](course:12345).
+      - Je mag GEEN informatie van het internet zoeken. Gebruik UITSLUITEND de meegeleverde JSON data over de cursussen voor het aanbod.
+      - Indien er geen passende cursus gevonden wordt: Meld dit vriendelijk en adviseer een alternatief uit de lijst.
       - Spreek de gebruiker altijd aan met "je" (informele maar professionele omgangsvorm).
       - Houd het antwoord beknopt en to-the-point (maximaal 150 woorden).
 
       Antwoord nu:
     `;
 
-    // Gebruik de 'gemini-3-flash-preview' model in plaats van lite, omdat lite geen googleSearch ondersteunt
     const response = await withRetry(() => ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }] // Enable Grounding with Google Search
-      }
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: prompt
     }));
 
     let text = response.text || "Sorry, ik kon op dit moment geen antwoord genereren. Probeer het later opnieuw.";
 
-    // Check for grounding metadata to display sources
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    if (chunks) {
-      const uniqueLinks = new Set<string>();
-      chunks.forEach((chunk: any) => {
-        if (chunk.web?.uri) {
-          uniqueLinks.add(chunk.web.uri);
-        }
-      });
-      
-      if (uniqueLinks.size > 0) {
-        text += "\n\n### Bronnen\n";
-        Array.from(uniqueLinks).forEach((link, index) => {
-           text += `- [Bron ${index + 1}](${link})\n`;
-        });
-      }
-    }
-
     return text;
   } catch (error: any) {
-    console.error("Gemini API Error:", error?.message || error);
-    if (error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+    const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
+    console.error("Gemini API Error:", errorString);
+    if (errorString.includes('503') || errorString.includes('UNAVAILABLE') || errorString.includes('high demand')) {
        return "De AI-service is momenteel erg druk. Probeer het over een paar minuten nog eens.";
+    }
+    if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED') || errorString.includes('spending cap')) {
+       return "De Gemini API limiet (spending cap) is bereikt. Probeer het later opnieuw of neem contact op met de beheerder.";
     }
     return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Controleer je internetverbinding of probeer de gewone zoekfilters.`;
   }

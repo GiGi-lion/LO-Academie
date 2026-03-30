@@ -5,10 +5,11 @@ import { Sparkles, Send, X, Bot, GraduationCap, ChevronRight, User, Target, MapP
 
 interface AIAssistantProps {
   courses: Course[];
+  onSelectCourse?: (course: Course) => void;
 }
 
 // Simple Markdown Formatter Component
-const MarkdownText: React.FC<{ text: string; isUser: boolean }> = ({ text, isUser }) => {
+const MarkdownText: React.FC<{ text: string; isUser: boolean; courses: Course[]; onSelectCourse?: (course: Course) => void }> = ({ text, isUser, courses, onSelectCourse }) => {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let listBuffer: string[] = [];
@@ -21,10 +22,26 @@ const MarkdownText: React.FC<{ text: string; isUser: boolean }> = ({ text, isUse
       }
       const linkMatch = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
+         const url = linkMatch[2];
+         if (url.startsWith('course:')) {
+            const courseId = url.replace('course:', '');
+            const course = courses.find(c => c.id === courseId);
+            if (course && onSelectCourse) {
+               return (
+                  <button 
+                      key={i} 
+                      onClick={() => onSelectCourse(course)}
+                      className={`underline font-bold ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6]'}`}
+                  >
+                      {linkMatch[1]}
+                  </button>
+               );
+            }
+         }
          return (
             <a 
                 key={i} 
-                href={linkMatch[2]} 
+                href={url} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className={`underline ${isUser ? 'text-white' : 'text-blue-600 hover:text-blue-800'}`}
@@ -95,7 +112,7 @@ const WIZARD_STEPS = [
   }
 ];
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ courses, onSelectCourse }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const [mode, setMode] = useState<'intro' | 'chat' | 'wizard'>('intro');
@@ -318,7 +335,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses }) => {
                             ? 'bg-[#00C1D4] text-white rounded-tr-none font-medium' 
                             : 'bg-white border border-slate-100 text-slate-600 rounded-tl-none'
                         }`}>
-                            <MarkdownText text={msg.text} isUser={msg.role === 'user'} />
+                            <MarkdownText text={msg.text} isUser={msg.role === 'user'} courses={courses} onSelectCourse={onSelectCourse} />
                         </div>
                         </div>
                     ))}

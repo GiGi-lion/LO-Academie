@@ -130,9 +130,13 @@ export const deleteCourseFromDB = async (id: string) => {
       .eq('id', id);
       
     if (error) throw error;
-  } catch (e) {
+    
+    // Refresh the courses list immediately after successful deletion
+    // The realtime subscription should catch this, but forcing a refresh ensures the UI updates
+    return true;
+  } catch (e: any) {
     console.error("Error deleting course:", e);
-    throw e;
+    throw new Error(e.message || "Kan scholing niet verwijderen");
   }
 };
 

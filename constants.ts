@@ -2,7 +2,8 @@ import { Course } from './types';
 
 export const REGIONS = ['Noord', 'Oost', 'Zuid', 'West', 'Landelijk', 'Online'];
 
-export const formatPrice = (price: number) => {
+export const formatPrice = (price?: number | null) => {
+  if (price === undefined || price === null) return 'Kosten op aanvraag';
   if (price === 0) return 'Gratis';
   
   if (price % 1 === 0) {

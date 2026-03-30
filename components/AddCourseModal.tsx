@@ -16,7 +16,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
   const [formData, setFormData] = useState<Partial<Course>>({
     organizers: [],
     region: 'Landelijk',
-    price: 0,
+    price: undefined,
     tags: [],
     url: ''
   });
@@ -31,7 +31,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     if (isOpen) {
       if (courseToEdit) {
         setFormData({ ...courseToEdit });
-        setPriceInput(courseToEdit.price === 0 ? '' : courseToEdit.price.toString().replace('.', ','));
+        setPriceInput(courseToEdit.price === 0 ? '0' : (courseToEdit.price ? courseToEdit.price.toString().replace('.', ',') : ''));
         
         // Check if there's any custom organizer
         const hasCustom = courseToEdit.organizers?.some(org => !ORGANIZERS.includes(org));
@@ -47,7 +47,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
         setFormData({
           organizers: [],
           region: 'Landelijk',
-          price: 0,
+          price: undefined,
           tags: [],
           url: '',
           date: new Date().toISOString().split('T')[0],
@@ -116,7 +116,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       date: formData.date,
       location: formData.location || 'Onbekend',
       region: formData.region || 'Landelijk',
-      price: Number(formData.price) || 0,
+      price: formData.price !== undefined && formData.price !== null ? Number(formData.price) : undefined,
       sessions: formData.sessions ? Number(formData.sessions) : undefined,
       description: formData.description,
       tags: formData.tags || [],
@@ -186,8 +186,10 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
           return newData;
         });
         
-        if (extractedData.price !== undefined) {
+        if (extractedData.price !== undefined && extractedData.price !== null) {
           setPriceInput(extractedData.price.toString().replace('.', ','));
+        } else {
+          setPriceInput('');
         }
       } else {
         alert('Kon geen gegevens extraheren van deze URL. Controleer of de URL toegankelijk is.');
@@ -396,19 +398,24 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
                   <input 
                     type="text" 
                     className={`${inputClasses} pl-8`}
-                    placeholder="0,00"
+                    placeholder="Laat leeg voor 'Kosten op aanvraag'"
                     value={priceInput}
                     onChange={e => {
                       const val = e.target.value;
                       if (/^[0-9]*,?[0-9]*$/.test(val)) {
                         setPriceInput(val);
-                        const num = parseFloat(val.replace(',', '.'));
-                        setFormData({...formData, price: isNaN(num) ? 0 : num});
+                        if (val === '') {
+                          setFormData({...formData, price: undefined});
+                        } else {
+                          const num = parseFloat(val.replace(',', '.'));
+                          setFormData({...formData, price: isNaN(num) ? undefined : num});
+                        }
                       }
                     }}
                     onBlur={() => {
+                      if (priceInput === '') return;
                       const num = parseFloat(priceInput.replace(',', '.'));
-                      if (!isNaN(num) && num !== 0) {
+                      if (!isNaN(num)) {
                         setPriceInput(num % 1 === 0 ? num.toString() : num.toFixed(2).replace('.', ','));
                       } else {
                         setPriceInput('');

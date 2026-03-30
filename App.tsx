@@ -198,8 +198,16 @@ const App: React.FC = () => {
       if (hasDateA && hasDateB) {
         if (sortOption === 'date-asc') return a.date!.localeCompare(b.date!);
         if (sortOption === 'date-desc') return b.date!.localeCompare(a.date!);
-        if (sortOption === 'price-asc') return a.price - b.price;
-        if (sortOption === 'price-desc') return b.price - a.price;
+        if (sortOption === 'price-asc') {
+          const priceA = a.price ?? Infinity;
+          const priceB = b.price ?? Infinity;
+          return priceA - priceB;
+        }
+        if (sortOption === 'price-desc') {
+          const priceA = a.price ?? -Infinity;
+          const priceB = b.price ?? -Infinity;
+          return priceB - priceA;
+        }
       } else if (hasDateA && !hasDateB) {
         return -1; // A comes first
       } else if (!hasDateA && hasDateB) {
@@ -235,8 +243,9 @@ const App: React.FC = () => {
         setCourses(updatedCourses);
         showToast("Scholing verwijderd", "success");
         setIsModalOpen(false);
-      } catch (e) {
-        showToast("Kan scholing niet verwijderen", "error");
+      } catch (e: any) {
+        console.error("Delete error:", e);
+        showToast(e.message || "Kan scholing niet verwijderen", "error");
       }
     }
   };
@@ -424,7 +433,7 @@ const App: React.FC = () => {
         onClose={() => setSelectedCourse(null)} 
       />
 
-      <AIAssistant courses={courses} />
+      <AIAssistant courses={courses} onSelectCourse={setSelectedCourse} />
     </div>
   );
 };
