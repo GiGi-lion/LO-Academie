@@ -11,10 +11,12 @@ import { Toast } from './components/Toast';
 import { CalendarView } from './components/CalendarView';
 import { MapView } from './components/MapView';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { Course, SearchFilters, SortOption } from './types';
 import { subscribeToCourses, saveCourseToDB, deleteCourseFromDB, isLiveMode, seedDatabase, fetchCourses } from './services/db';
 import { supabase } from './services/supabase';
-import { Plus, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud } from 'lucide-react';
+import { Plus, SlidersHorizontal, LayoutGrid, Calendar as CalendarIcon, Map as MapIcon, ShieldCheck, Wifi, WifiOff, UploadCloud, RefreshCw } from 'lucide-react';
+import { TAG_MAPPING, normalizeTags } from './utils/tagNormalizer';
 
 type ViewMode = 'list' | 'calendar' | 'map';
 
@@ -37,7 +39,8 @@ const App: React.FC = () => {
     dateStart: '',
     dateEnd: '',
     organizers: [],
-    selectedTags: []
+    selectedTags: [],
+    priceType: 'Alle'
   });
   
   const [sortOption, setSortOption] = useState<SortOption>('date-asc');
@@ -52,6 +55,8 @@ const App: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isNormalizing, setIsNormalizing] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{message: string, onConfirm: () => void} | null>(null);
   
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -111,11 +116,18 @@ const App: React.FC = () => {
 
   // Extract unique tags
   const allTags = useMemo(() => {
-    const tags = new Set<string>();
+    const tagMap = new Map<string, string>();
     courses.forEach(c => {
-      c.tags.forEach(t => tags.add(t));
+      c.tags.forEach(t => {
+        const lower = t.toLowerCase().trim();
+        if (!tagMap.has(lower)) {
+          // Capitalize first letter for display
+          const displayTag = t.charAt(0).toUpperCase() + t.slice(1);
+          tagMap.set(lower, displayTag);
+        }
+      });
     });
-    return Array.from(tags).sort();
+    return Array.from(tagMap.values()).sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }));
   }, [courses]);
 
   const toggleFavorite = (id: string) => {
@@ -148,19 +160,63 @@ const App: React.FC = () => {
   };
 
   const handleSeedDatabase = async () => {
-    if(!window.confirm("Dit zal alle voorbeeld-scholingen uploaden naar je database. Wil je doorgaan?")) return;
-    setIsSeeding(true);
-    try {
-      await seedDatabase();
-      const updatedCourses = await fetchCourses();
-      setCourses(updatedCourses);
-      showToast("✅ Database succesvol gevuld!", "success");
-    } catch (e: any) {
-      console.error("Error seeding database:", e);
-      showToast(`❌ Fout bij uploaden: ${e.message || 'Onbekende fout'}`, "error");
-    } finally {
-      setIsSeeding(false);
-    }
+    setConfirmAction({
+      message: "Dit zal alle voorbeeld-scholingen uploaden naar je database. Wil je doorgaan?",
+      onConfirm: async () => {
+        setIsSeeding(true);
+        try {
+          await seedDatabase();
+          const updatedCourses = await fetchCourses();
+          setCourses(updatedCourses);
+          showToast("✅ Database succesvol gevuld!", "success");
+        } catch (e: any) {
+          console.error("Error seeding database:", e);
+          showToast(`❌ Fout bij uploaden: ${e.message || 'Onbekende fout'}`, "error");
+        } finally {
+          setIsSeeding(false);
+        }
+      }
+    });
+  };
+
+  const handleNormalizeTags = async () => {
+    setConfirmAction({
+      message: "Weet je zeker dat je alle tags in de database wilt opschonen en standaardiseren?",
+      onConfirm: async () => {
+        setIsNormalizing(true);
+        try {
+          let updatedCount = 0;
+          for (const course of courses) {
+            const uniqueTags = normalizeTags(course.tags);
+
+            let hasChanges = false;
+            if (uniqueTags.length !== course.tags.length) {
+              hasChanges = true;
+            } else {
+              hasChanges = uniqueTags.some((t, i) => t !== course.tags[i]);
+            }
+
+            if (hasChanges) {
+              await saveCourseToDB({ ...course, tags: uniqueTags });
+              updatedCount++;
+            }
+          }
+          
+          if (updatedCount > 0) {
+            const updatedCourses = await fetchCourses();
+            setCourses(updatedCourses);
+            showToast(`✅ Succesvol ${updatedCount} scholing(en) opgeschoond!`, "success");
+          } else {
+            showToast("ℹ️ Alle tags zijn al optimaal, geen wijzigingen nodig.", "success");
+          }
+        } catch (error: any) {
+          console.error("Fout bij opschonen tags:", error);
+          showToast(`❌ Fout bij opschonen: ${error.message || 'Onbekende fout'}`, "error");
+        } finally {
+          setIsNormalizing(false);
+        }
+      }
+    });
   };
 
   const filteredAndSortedCourses = useMemo(() => {
@@ -185,10 +241,19 @@ const App: React.FC = () => {
       const matchesOrganizer = filters.organizers.length === 0 || 
         (course.organizers && course.organizers.some(org => filters.organizers.includes(org)));
       const matchesTags = filters.selectedTags.length === 0 || 
-        filters.selectedTags.some(tag => course.tags.includes(tag));
+        filters.selectedTags.some(tag => course.tags.some(ct => ct.toLowerCase().trim() === tag.toLowerCase().trim()));
       const matchesFavorite = !showOnlyFavorites || favorites.includes(course.id);
+      
+      let matchesPrice = true;
+      if (filters.priceType === 'Gratis') {
+        matchesPrice = course.price === 0;
+      } else if (filters.priceType === 'Betaald') {
+        matchesPrice = course.price !== undefined && course.price !== null && course.price > 0;
+      } else if (filters.priceType === 'Op aanvraag') {
+        matchesPrice = course.price === undefined || course.price === null;
+      }
 
-      return matchesQuery && matchesRegion && matchesDateStart && matchesDateEnd && matchesOrganizer && matchesTags && matchesFavorite;
+      return matchesQuery && matchesRegion && matchesDateStart && matchesDateEnd && matchesOrganizer && matchesTags && matchesFavorite && matchesPrice;
     });
 
     result.sort((a, b) => {
@@ -224,7 +289,9 @@ const App: React.FC = () => {
 
   const handleSaveCourse = async (savedCourse: Course) => {
     try {
-      await saveCourseToDB(savedCourse);
+      const uniqueTags = normalizeTags(savedCourse.tags);
+
+      await saveCourseToDB({ ...savedCourse, tags: uniqueTags });
       const updatedCourses = await fetchCourses();
       setCourses(updatedCourses);
       showToast(courseToEdit ? "Scholing bijgewerkt" : "Scholing toegevoegd", "success");
@@ -236,18 +303,21 @@ const App: React.FC = () => {
   };
 
   const handleDeleteCourse = async (id: string) => {
-    if(window.confirm("Scholing definitief verwijderen?")) {
-      try {
-        await deleteCourseFromDB(id);
-        const updatedCourses = await fetchCourses();
-        setCourses(updatedCourses);
-        showToast("Scholing verwijderd", "success");
-        setIsModalOpen(false);
-      } catch (e: any) {
-        console.error("Delete error:", e);
-        showToast(e.message || "Kan scholing niet verwijderen", "error");
+    setConfirmAction({
+      message: "Scholing definitief verwijderen?",
+      onConfirm: async () => {
+        try {
+          await deleteCourseFromDB(id);
+          const updatedCourses = await fetchCourses();
+          setCourses(updatedCourses);
+          showToast("Scholing verwijderd", "success");
+          setIsModalOpen(false);
+        } catch (e: any) {
+          console.error("Delete error:", e);
+          showToast(e.message || "Kan scholing niet verwijderen", "error");
+        }
       }
-    }
+    });
   };
 
   const openAddModal = () => {
@@ -329,9 +399,14 @@ const App: React.FC = () => {
                         <span className="text-xs font-bold uppercase">Beheer</span>
                     </div>
                     {isLiveMode() && (
-                      <button onClick={handleSeedDatabase} disabled={isSeeding} className="text-xs font-bold text-slate-500 hover:text-[#00C1D4] flex items-center gap-1">
-                        <UploadCloud className="w-3 h-3" /> Upload Demo
-                      </button>
+                      <>
+                        <button onClick={handleSeedDatabase} disabled={isSeeding} className="text-xs font-bold text-slate-500 hover:text-[#00C1D4] flex items-center gap-1">
+                          <UploadCloud className="w-3 h-3" /> Upload Demo
+                        </button>
+                        <button onClick={handleNormalizeTags} disabled={isNormalizing} className="text-xs font-bold text-slate-500 hover:text-[#00C1D4] flex items-center gap-1">
+                          <RefreshCw className={`w-3 h-3 ${isNormalizing ? 'animate-spin' : ''}`} /> Opschonen Tags
+                        </button>
+                      </>
                     )}
                     <button onClick={openAddModal} className="text-xs font-bold text-[#7AB800] hover:underline flex items-center gap-1">
                         <Plus className="w-3 h-3" /> Toevoegen
@@ -425,12 +500,24 @@ const App: React.FC = () => {
         onSave={handleSaveCourse}
         onDelete={handleDeleteCourse}
         courseToEdit={courseToEdit}
+        allTags={allTags}
       />
 
       <CourseDetailModal 
         isOpen={!!selectedCourse} 
         course={selectedCourse} 
         onClose={() => setSelectedCourse(null)} 
+      />
+
+      <ConfirmModal
+        isOpen={!!confirmAction}
+        message={confirmAction?.message || ''}
+        onConfirm={async () => {
+          if (confirmAction) {
+            await confirmAction.onConfirm();
+          }
+        }}
+        onCancel={() => setConfirmAction(null)}
       />
 
       <AIAssistant courses={courses} onSelectCourse={setSelectedCourse} />

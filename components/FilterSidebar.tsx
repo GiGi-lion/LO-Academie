@@ -189,7 +189,22 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
         </div>
       </FilterSection>
 
-      {/* 4. Regio */}
+      {/* 4. Kosten */}
+      <FilterSection title="Kosten" icon={<span className="w-4 h-4 flex items-center justify-center font-bold text-green-500">€</span>} isOpenDefault={false}>
+        <div className="flex flex-col gap-2 mt-2">
+          {['Alle', 'Gratis', 'Betaald', 'Op aanvraag'].map(type => (
+            <button
+              key={type}
+              onClick={() => setFilters({...filters, priceType: type})}
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors border text-left ${filters.priceType === type ? 'bg-green-500 text-white border-green-500' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* 5. Regio */}
       <FilterSection title="Regio" icon={<MapPin className="w-4 h-4 text-[#00C1D4]" />} isOpenDefault={false}>
         <div className="grid grid-cols-2 gap-2 mt-2">
           <button 
@@ -210,7 +225,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
         </div>
       </FilterSection>
 
-      {/* 5. Organisator */}
+      {/* 6. Organisator */}
       <FilterSection title="Organisator" icon={<Building2 className="w-4 h-4 text-purple-500" />} isOpenDefault={false}>
          <div className="flex flex-col gap-2 mt-2">
             {ORGANIZERS.map(org => (
@@ -236,7 +251,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
          </div>
       </FilterSection>
 
-      {/* 6. Sorteren */}
+      {/* 7. Sorteren */}
       <FilterSection title="Sorteren" icon={<ArrowUpDown className="w-4 h-4 text-slate-500" />} isOpenDefault={false}>
           <div className="relative mt-2">
             <select 

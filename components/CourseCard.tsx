@@ -177,9 +177,19 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         </p>
 
         <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-            <span className="font-black text-lg text-[#7AB800]">
-                {formatPrice(course.price)}
-            </span>
+            {course.price === 0 ? (
+              <span className="font-black text-sm px-2.5 py-1 bg-green-100 text-green-700 rounded-md uppercase tracking-wider">
+                  Gratis
+              </span>
+            ) : course.price === undefined || course.price === null ? (
+              <span className="font-bold text-sm text-slate-400 italic">
+                  Kosten op aanvraag
+              </span>
+            ) : (
+              <span className="font-black text-lg text-[#7AB800]">
+                  {formatPrice(course.price)}
+              </span>
+            )}
             <div className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all">
                 Details <ArrowRight className="w-3.5 h-3.5" />
             </div>

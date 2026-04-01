@@ -45,10 +45,15 @@ const withRetry = async <T>(operation: () => Promise<T>, maxRetries = 3, baseDel
 // We initialiseren de client NIET hier, maar pas in de functie. 
 // Dit voorkomt dat de app crasht bij het laden (White Screen) als de API Key mist of de env nog niet geladen is.
 
-export const extractCourseFromUrl = async (url: string): Promise<Partial<Course> | null> => {
+export const extractCourseFromUrl = async (url: string, existingTags: string[] = []): Promise<Partial<Course> | null> => {
   try {
     const apiKey = getApiKey();
     const ai = new GoogleGenAI({ apiKey });
+
+    const existingTagsPrompt = existingTags.length > 0 
+      ? `\n      BELANGRIJK VOOR TAGS: Hier is een lijst van reeds bestaande tags: ${existingTags.join(', ')}. 
+      Kies bij voorkeur uit deze bestaande tags. Gebruik algemenere categorieën (bijv. "Racketsporten" i.p.v. "Padel", "Beweegonderwijs" i.p.v. "Bewegingsonderwijs"). Verzin ALLEEN een nieuwe, unieke tag als er echt een belangrijke categorie ontbreekt.`
+      : '';
 
     const prompt = `
       Je bent een expert in het extraheren van cursusinformatie uit webpagina's.
@@ -63,7 +68,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
       - sessions: Het aantal bijeenkomsten (een getal, standaard 1)
       - organizers: Een array van organisatoren. Kies uit: "KVLO", "ALO Nederland", "Fontys", "HAN", "Hanze", "HHS", "HvA", "Windesheim". Als er een andere organisator is, voeg die dan ook toe aan de array.
       - region: De regio (bijv. "Noord", "Oost", "Zuid", "West", "Midden", "Landelijk")
-      - tags: Een array van 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag, bijv. "PO", "VO", "Didactiek", "BSM").
+      - tags: Een array van 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag, bijv. "PO", "VO", "Didactiek", "BSM"). Zorg dat de tags beginnen met een hoofdletter.${existingTagsPrompt}
     `;
 
     const response = await withRetry(() => ai.models.generateContent({
@@ -107,7 +112,7 @@ export const extractCourseFromUrl = async (url: string): Promise<Partial<Course>
   }
 };
 
-export const suggestTags = async (title: string, description: string): Promise<string[]> => {
+export const suggestTags = async (title: string, description: string, existingTags: string[] = []): Promise<string[]> => {
   try {
     const apiKey = getApiKey();
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
@@ -117,11 +122,16 @@ export const suggestTags = async (title: string, description: string): Promise<s
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
 
+    const existingTagsPrompt = existingTags.length > 0 
+      ? `\n      BELANGRIJK: Hier is een lijst van reeds bestaande tags: ${existingTags.join(', ')}. 
+      Kies bij voorkeur uit deze bestaande tags. Gebruik algemenere categorieën (bijv. "Racketsporten" i.p.v. "Padel", "Beweegonderwijs" i.p.v. "Bewegingsonderwijs"). Verzin ALLEEN een nieuwe, unieke tag als er echt een belangrijke categorie ontbreekt.`
+      : '';
+
     const prompt = `
       Je bent een expert in het categoriseren van cursussen voor docenten lichamelijke opvoeding (LO) en bewegingsonderwijs.
       Gegeven de volgende titel en omschrijving van een scholing, genereer 3 tot 5 relevante, korte tags (maximaal 2 woorden per tag).
-      Geef ALLEEN een komma-gescheiden lijst van tags terug, zonder extra tekst, opsommingstekens of uitleg.
-      Voorbeelden van goede tags: PO, VO, Didactiek, BSM, MRT, Turnen, Spel, Zwemmen, EHBO.
+      Geef ALLEEN een komma-gescheiden lijst van tags terug, zonder extra tekst, opsommingstekens of uitleg. Zorg dat de tags beginnen met een hoofdletter.
+      Voorbeelden van goede tags: PO, VO, Didactiek, BSM, MRT, Turnen, Spel, Zwemmen, EHBO.${existingTagsPrompt}
 
       Titel: ${title}
       Omschrijving: ${description}
@@ -216,7 +226,7 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       - Gebruik opsommingstekens indien je meerdere opties presenteert.
       - Gebruik kopjes (### Koptekst) voor een heldere structuur.
       - Indien de gebruiker zoekt naar een cursus: Analyseer de JSON en adviseer 1-3 relevante opties. Vermeld titel, datum en locatie.
-      - **BELANGRIJK:** Maak van elke aanbevolen cursus een klikbare link met het exacte format: [Titel van Cursus](course:ID_VAN_DE_CURSUS). Gebruik hiervoor het 'id' veld uit de JSON. Bijvoorbeeld: [Basiscursus Turnen](course:12345).
+      - **BELANGRIJK:** Maak van elke aanbevolen cursus een klikbare link met het exacte format: [Titel van Cursus](course:ID_VAN_DE_CURSUS). Gebruik hiervoor exact de waarde van het 'id' veld uit de JSON. Bijvoorbeeld: [Basiscursus Turnen](course:f47ac10b-58cc-4372-a567-0e02b2c3d479).
       - Je mag GEEN informatie van het internet zoeken. Gebruik UITSLUITEND de meegeleverde JSON data over de cursussen voor het aanbod.
       - Indien er geen passende cursus gevonden wordt: Meld dit vriendelijk en adviseer een alternatief uit de lijst.
       - Spreek de gebruiker altijd aan met "je" (informele maar professionele omgangsvorm).

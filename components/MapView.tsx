@@ -178,8 +178,18 @@ export const MapView: React.FC<MapViewProps> = ({ courses, onSelectCourse }) => 
         // Meta Info (Price & Location)
         const meta = document.createElement('div');
         meta.className = 'flex items-center justify-between mb-3 text-xs';
+        
+        let priceHtml = '';
+        if (course.price === 0) {
+            priceHtml = '<span class="font-black text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded uppercase tracking-wider">Gratis</span>';
+        } else if (course.price === undefined || course.price === null) {
+            priceHtml = '<span class="font-bold text-[10px] text-slate-400 italic">Kosten op aanvraag</span>';
+        } else {
+            priceHtml = `<span class="font-black text-[#7AB800]">${formatPrice(course.price)}</span>`;
+        }
+
         meta.innerHTML = `
-            <span class="font-black text-[#7AB800]">${formatPrice(course.price)}</span>
+            ${priceHtml}
             <span class="text-slate-500 flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                 ${course.location}

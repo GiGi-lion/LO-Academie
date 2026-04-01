@@ -32,12 +32,19 @@ const MarkdownText: React.FC<{ text: string; isUser: boolean; courses: Course[];
         const url = linkMatch[2];
         if (url.startsWith('course:')) {
           const courseId = url.replace('course:', '').trim();
-          const course = courses.find(c => c.id === courseId);
+          let course = courses.find(c => String(c.id) === courseId);
+          
+          // Fallback: if ID is wrong, try to find by title
+          if (!course) {
+            const title = linkMatch[1].toLowerCase();
+            course = courses.find(c => c.title.toLowerCase().includes(title));
+          }
+
           if (course && onSelectCourse) {
             return (
               <button 
                 key={i} 
-                onClick={() => onSelectCourse(course)}
+                onClick={(e) => { e.preventDefault(); onSelectCourse(course!); }}
                 className={`underline font-bold text-left ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6]'}`}
               >
                 {linkMatch[1]}

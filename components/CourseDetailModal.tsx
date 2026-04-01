@@ -163,7 +163,13 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Kosten</p>
                   <p className="text-sm font-semibold text-slate-800">
-                    {course.price === 0 ? 'Gratis deelname' : (course.price === undefined || course.price === null ? 'Kosten op aanvraag' : `${formatPrice(course.price)} p.p.`)}
+                    {course.price === 0 ? (
+                      <span className="text-green-600 font-bold uppercase tracking-wider">Gratis deelname</span>
+                    ) : course.price === undefined || course.price === null ? (
+                      <span className="text-slate-500 italic">Kosten op aanvraag</span>
+                    ) : (
+                      `${formatPrice(course.price)} p.p.`
+                    )}
                   </p>
                 </div>
               </div>

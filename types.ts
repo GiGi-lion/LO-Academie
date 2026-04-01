@@ -42,6 +42,7 @@ export interface SearchFilters {
   dateEnd: string;
   organizers: string[];
   selectedTags: string[];
+  priceType: string;
 }
 
 export type SortOption = 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc';

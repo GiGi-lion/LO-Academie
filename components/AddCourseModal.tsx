@@ -3,6 +3,7 @@ import { Course, ORGANIZERS } from '../types';
 import { REGIONS, DEFAULT_IMAGES } from '../constants';
 import { X, Link as LinkIcon, Trash2, Plus, Info, Tag as TagIcon, Wand2 } from 'lucide-react';
 import { suggestImage, extractCourseFromUrl } from '../services/geminiService';
+import { normalizeTags } from '../utils/tagNormalizer';
 
 interface AddCourseModalProps {
   isOpen: boolean;
@@ -10,9 +11,10 @@ interface AddCourseModalProps {
   onSave: (course: Course) => Promise<void> | void;
   onDelete?: (id: string) => void;
   courseToEdit?: Course;
+  allTags: string[];
 }
 
-export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave, onDelete, courseToEdit }) => {
+export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave, onDelete, courseToEdit, allTags }) => {
   const [formData, setFormData] = useState<Partial<Course>>({
     organizers: [],
     region: 'Landelijk',
@@ -139,9 +141,11 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     e.preventDefault();
     if (tagInput.trim()) {
       const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      const normalizedNewTags = normalizeTags(newTags);
+      
       setFormData(prev => {
         const existingTags = prev.tags || [];
-        const uniqueNewTags = newTags.filter(t => !existingTags.includes(t));
+        const uniqueNewTags = normalizedNewTags.filter(t => !existingTags.some(et => et.toLowerCase() === t.toLowerCase()));
         return {
           ...prev,
           tags: [...existingTags, ...uniqueNewTags]
@@ -159,7 +163,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
     
     setIsExtractingUrl(true);
     try {
-      const extractedData = await extractCourseFromUrl(formData.url);
+      const extractedData = await extractCourseFromUrl(formData.url, allTags);
       if (extractedData) {
         // Automatically add 'ALO Nederland' if an ALO institution is found
         if (extractedData.organizers) {
@@ -171,6 +175,19 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
         }
 
         setFormData(prev => {
+          // Normalize tags from AI
+          if (extractedData.tags) {
+            extractedData.tags = extractedData.tags.map(t => {
+              const trimmed = t.trim();
+              const existingMatch = allTags.find(at => at.toLowerCase() === trimmed.toLowerCase());
+              return existingMatch || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+            });
+            // Remove duplicates case-insensitively
+            extractedData.tags = extractedData.tags.filter((t, i, arr) => 
+              arr.findIndex(at => at.toLowerCase() === t.toLowerCase()) === i
+            );
+          }
+
           const newData = { ...prev, ...extractedData, url: prev.url };
           
           // Handle custom organizers from AI suggestion

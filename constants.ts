@@ -82,7 +82,7 @@ export const INITIAL_COURSES: Course[] = [
     region: 'Landelijk',
     price: 295,
     description: 'Basiscursus voor nieuwe vakgroepcoördinatoren in het PO.',
-    tags: ['PO', 'Coördinator', 'Management'],
+    tags: ['PO', 'Coördinator', 'Leiderschap'],
     url: 'https://www.kvlo.nl',
     imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=400' // Notitieboek/Agenda
   },
