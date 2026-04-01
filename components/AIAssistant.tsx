@@ -15,41 +15,50 @@ const MarkdownText: React.FC<{ text: string; isUser: boolean; courses: Course[];
   let listBuffer: string[] = [];
 
   const parseInline = (line: string) => {
-    const parts = line.split(/(\*\*.*?\*\*)/g);
+    // Split by both bold text and markdown links
+    const parts = line.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
+    
     return parts.map((part, i) => {
+      if (!part) return null;
+
+      // Handle bold text
       if (part.startsWith('**') && part.endsWith('**')) {
         return <strong key={i} className={isUser ? 'font-black' : 'font-bold text-slate-900'}>{part.slice(2, -2)}</strong>;
       }
-      const linkMatch = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
+
+      // Handle markdown links
+      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
-         const url = linkMatch[2];
-         if (url.startsWith('course:')) {
-            const courseId = url.replace('course:', '');
-            const course = courses.find(c => c.id === courseId);
-            if (course && onSelectCourse) {
-               return (
-                  <button 
-                      key={i} 
-                      onClick={() => onSelectCourse(course)}
-                      className={`underline font-bold ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6]'}`}
-                  >
-                      {linkMatch[1]}
-                  </button>
-               );
-            }
-         }
-         return (
-            <a 
+        const url = linkMatch[2];
+        if (url.startsWith('course:')) {
+          const courseId = url.replace('course:', '').trim();
+          const course = courses.find(c => c.id === courseId);
+          if (course && onSelectCourse) {
+            return (
+              <button 
                 key={i} 
-                href={url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={`underline ${isUser ? 'text-white' : 'text-blue-600 hover:text-blue-800'}`}
-            >
+                onClick={() => onSelectCourse(course)}
+                className={`underline font-bold text-left ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6]'}`}
+              >
                 {linkMatch[1]}
-            </a>
-         );
+              </button>
+            );
+          }
+        }
+        return (
+          <a 
+            key={i} 
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={`underline ${isUser ? 'text-white' : 'text-blue-600 hover:text-blue-800'}`}
+          >
+            {linkMatch[1]}
+          </a>
+        );
       }
+
+      // Plain text
       return part;
     });
   };

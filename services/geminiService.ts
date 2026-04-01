@@ -191,7 +191,7 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       id: c.id,
       title: c.title,
       date: c.date,
-      organizer: c.organizer,
+      organizers: c.organizers,
       region: c.region,
       description: c.description,
       tags: c.tags
