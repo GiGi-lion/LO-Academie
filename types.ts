@@ -28,6 +28,7 @@ export interface Course {
   location: string;
   region: string;
   price?: number | null;
+  memberPrice?: number | null;
   description: string;
   tags: string[];
   url: string;

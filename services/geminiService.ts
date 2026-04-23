@@ -64,7 +64,8 @@ export const extractCourseFromUrl = async (url: string, existingTags: string[] =
       - description: Een duidelijke omschrijving van de scholing. BELANGRIJK: Als uit de originele tekst niet direct duidelijk is waarom deze scholing relevant is voor het beroep of werkveld van bewegingsonderwijs (PO) of lichamelijke opvoeding (VO), voeg dan zelf een of twee zinnen toe aan de omschrijving om deze relevantie te verduidelijken.
       - date: De startdatum in YYYY-MM-DD formaat. Als er geen specifieke datum is, laat dit veld dan leeg ("").
       - location: De locatie waar de scholing plaatsvindt
-      - price: De prijs in euro's (alleen het getal, bijv. 150). Laat leeg of gebruik null als de prijs (nog) niet bekend is.
+      - price: De standaard prijs voor NIET-LEDEN in euro's (alleen het getal, bijv. 150). Laat leeg of gebruik null als de prijs (nog) niet bekend is.
+      - memberPrice: De speciale prijs voor LEDEN (meestal KVLO-leden) in euro's. Als er maar één prijs is, gebruik die dan voor 'price' en laat 'memberPrice' leeg of null.
       - sessions: Het aantal bijeenkomsten (een getal, standaard 1)
       - organizers: Een array van organisatoren. Kies uit: "KVLO", "ALO Nederland", "Fontys", "HAN", "Hanze", "HHS", "HvA", "Windesheim". Als er een andere organisator is, voeg die dan ook toe aan de array.
       - region: De regio (bijv. "Noord", "Oost", "Zuid", "West", "Midden", "Landelijk")
@@ -84,7 +85,8 @@ export const extractCourseFromUrl = async (url: string, existingTags: string[] =
             description: { type: Type.STRING },
             date: { type: Type.STRING },
             location: { type: Type.STRING },
-            price: { type: Type.NUMBER, description: "De prijs in euro's. Gebruik null als de prijs niet bekend is." },
+            price: { type: Type.NUMBER, description: "De standaard prijs (niet-leden) in euro's. Gebruik null als de prijs niet bekend is." },
+            memberPrice: { type: Type.NUMBER, description: "De ledenprijs in euro's. Gebruik null als er geen aparte ledenprijs is." },
             sessions: { type: Type.NUMBER },
             organizers: { type: Type.ARRAY, items: { type: Type.STRING } },
             region: { type: Type.STRING },

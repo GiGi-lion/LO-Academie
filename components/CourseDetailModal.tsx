@@ -162,15 +162,26 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Kosten</p>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <div className="text-sm font-semibold text-slate-800">
                     {course.price === 0 ? (
                       <span className="text-green-600 font-bold uppercase tracking-wider">Gratis deelname</span>
                     ) : course.price === undefined || course.price === null ? (
                       <span className="text-slate-500 italic">Kosten op aanvraag</span>
                     ) : (
-                      `${formatPrice(course.price)} p.p.`
+                      <div className="flex flex-col">
+                        {isKVLO && course.memberPrice !== undefined && course.memberPrice !== null ? (
+                          <>
+                            <span>{formatPrice(course.memberPrice)} p.p.</span>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              Niet-KVLO-leden: {formatPrice(course.price)}
+                            </span>
+                          </>
+                        ) : (
+                          <span>{formatPrice(course.price)} p.p.</span>
+                        )}
+                      </div>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
 

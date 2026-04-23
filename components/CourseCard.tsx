@@ -186,9 +186,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
                   Kosten op aanvraag
               </span>
             ) : (
-              <span className="font-black text-lg text-[#7AB800]">
-                  {formatPrice(course.price)}
-              </span>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                {isKVLO && course.memberPrice !== undefined && course.memberPrice !== null ? (
+                  <>
+                    <span className="font-black text-lg text-[#7AB800]">
+                        {formatPrice(course.memberPrice)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                      (niet-KVLO-leden: {formatPrice(course.price)})
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-black text-lg text-[#7AB800]">
+                      {formatPrice(course.price)}
+                  </span>
+                )}
+              </div>
             )}
             <div className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all">
                 Details <ArrowRight className="w-3.5 h-3.5" />

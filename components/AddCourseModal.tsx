@@ -24,6 +24,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
   });
   const [tagInput, setTagInput] = useState('');
   const [priceInput, setPriceInput] = useState('');
+  const [memberPriceInput, setMemberPriceInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isExtractingUrl, setIsExtractingUrl] = useState(false);
   const [customOrganizer, setCustomOrganizer] = useState('');
@@ -34,6 +35,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       if (courseToEdit) {
         setFormData({ ...courseToEdit });
         setPriceInput(courseToEdit.price === 0 ? '0' : (courseToEdit.price ? courseToEdit.price.toString().replace('.', ',') : ''));
+        setMemberPriceInput(courseToEdit.memberPrice === 0 ? '0' : (courseToEdit.memberPrice ? courseToEdit.memberPrice.toString().replace('.', ',') : ''));
         
         // Check if there's any custom organizer
         const hasCustom = courseToEdit.organizers?.some(org => !ORGANIZERS.includes(org));
@@ -56,6 +58,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
           sessions: 1
         });
         setPriceInput('');
+        setMemberPriceInput('');
         setShowCustomOrganizer(false);
         setCustomOrganizer('');
       }
@@ -119,6 +122,7 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
       location: formData.location || 'Onbekend',
       region: formData.region || 'Landelijk',
       price: formData.price !== undefined && formData.price !== null ? Number(formData.price) : undefined,
+      memberPrice: formData.memberPrice !== undefined && formData.memberPrice !== null ? Number(formData.memberPrice) : undefined,
       sessions: formData.sessions ? Number(formData.sessions) : undefined,
       description: formData.description,
       tags: formData.tags || [],
@@ -207,6 +211,12 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
           setPriceInput(extractedData.price.toString().replace('.', ','));
         } else {
           setPriceInput('');
+        }
+
+        if (extractedData.memberPrice !== undefined && extractedData.memberPrice !== null) {
+          setMemberPriceInput(extractedData.memberPrice.toString().replace('.', ','));
+        } else {
+          setMemberPriceInput('');
         }
       } else {
         alert('Kon geen gegevens extraheren van deze URL. Controleer of de URL toegankelijk is.');
@@ -436,6 +446,39 @@ export const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose,
                         setPriceInput(num % 1 === 0 ? num.toString() : num.toFixed(2).replace('.', ','));
                       } else {
                         setPriceInput('');
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelClasses}>KVLO Ledenprijs (€)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">€</span>
+                  <input 
+                    type="text" 
+                    className={`${inputClasses} pl-8 border-indigo-100 focus:border-indigo-400`}
+                    placeholder="Alleen voor KVLO scholingen"
+                    value={memberPriceInput}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (/^[0-9]*,?[0-9]*$/.test(val)) {
+                        setMemberPriceInput(val);
+                        if (val === '') {
+                          setFormData({...formData, memberPrice: undefined});
+                        } else {
+                          const num = parseFloat(val.replace(',', '.'));
+                          setFormData({...formData, memberPrice: isNaN(num) ? undefined : num});
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (memberPriceInput === '') return;
+                      const num = parseFloat(memberPriceInput.replace(',', '.'));
+                      if (!isNaN(num)) {
+                        setMemberPriceInput(num % 1 === 0 ? num.toString() : num.toFixed(2).replace('.', ','));
+                      } else {
+                        setMemberPriceInput('');
                       }
                     }}
                   />
