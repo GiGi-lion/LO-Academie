@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, ShieldAlert } from 'lucide-react';
+import { X, Lock, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface AdminLoginModalProps {
@@ -11,6 +11,7 @@ interface AdminLoginModalProps {
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +34,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
         onLoginSuccess();
         setEmail('');
         setPassword('');
+        setShowPassword(false);
         setError(null);
       }
     } catch (err: any) {
@@ -82,20 +84,30 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                   Wachtwoord
                 </label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-5 py-4 bg-slate-50 border-2 rounded-2xl outline-none transition-all font-bold ${
-                    error 
-                      ? 'border-red-400 ring-4 ring-red-500/10' 
-                      : 'border-slate-100 focus:border-[#7AB800] focus:ring-4 focus:ring-[#7AB800]/10'
-                  }`}
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full px-5 py-4 bg-slate-50 border-2 rounded-2xl outline-none transition-all font-bold pr-14 ${
+                      error 
+                        ? 'border-red-400 ring-4 ring-red-500/10' 
+                        : 'border-slate-100 focus:border-[#7AB800] focus:ring-4 focus:ring-[#7AB800]/10'
+                    }`}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {error && (
-                  <div className="absolute right-4 top-[42px] flex items-center gap-1.5 text-red-500 animate-in fade-in slide-in-from-right-2">
+                  <div className="absolute right-14 top-[42px] flex items-center gap-1.5 text-red-500 animate-in fade-in slide-in-from-right-2">
                     <ShieldAlert className="w-5 h-5" />
                   </div>
                 )}
