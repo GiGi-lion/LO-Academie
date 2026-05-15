@@ -257,7 +257,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses, onSelectCours
             <div>
                <h3 className="font-bold text-lg leading-tight">LO Academie</h3>
                <p className="text-[10px] text-white/80 font-medium uppercase tracking-wider">
-                 {mode === 'wizard' ? 'Keuzehulp' : 'AI Assistent'}
+                 {mode === 'wizard' ? 'Keuzehulp' : 'Studieadviseur'}
                </p>
             </div>
           </div>
