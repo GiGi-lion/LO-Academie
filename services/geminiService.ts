@@ -202,7 +202,7 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     const courseContext = JSON.stringify(availableCourses.map(c => ({
       id: c.id,
       title: c.title,
-      date: c.date,
+      date: (c.date && c.date.trim() !== '') ? c.date : "Zonder startdatum",
       organizers: c.organizers,
       region: c.region,
       description: c.description,

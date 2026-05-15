@@ -114,10 +114,20 @@ const App: React.FC = () => {
     localStorage.setItem('alo_kvlo_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  // Extract unique tags
+  // Process courses to handle expired dates (hide past dates)
+  const processedCourses = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return courses.map(course => {
+      if (course.date && course.date.trim() !== '' && course.date < todayStr) {
+        return { ...course, date: undefined };
+      }
+      return course;
+    });
+  }, [courses]);
+
   const allTags = useMemo(() => {
     const tagMap = new Map<string, string>();
-    courses.forEach(c => {
+    processedCourses.forEach(c => {
       c.tags.forEach(t => {
         const lower = t.toLowerCase().trim();
         if (!tagMap.has(lower)) {
@@ -128,7 +138,7 @@ const App: React.FC = () => {
       });
     });
     return Array.from(tagMap.values()).sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' }));
-  }, [courses]);
+  }, [processedCourses]);
 
   const toggleFavorite = (id: string) => {
     setFavorites(prev => 
@@ -220,15 +230,6 @@ const App: React.FC = () => {
   };
 
   const filteredAndSortedCourses = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    const processedCourses = courses.map(course => {
-      if (course.date && course.date.trim() !== '' && course.date < todayStr) {
-        return { ...course, date: undefined };
-      }
-      return course;
-    });
-
     let result = processedCourses.filter(course => {
       const matchesQuery = 
         course.title.toLowerCase().includes(filters.query.toLowerCase()) || 
@@ -520,7 +521,7 @@ const App: React.FC = () => {
         onCancel={() => setConfirmAction(null)}
       />
 
-      <AIAssistant courses={courses} onSelectCourse={setSelectedCourse} />
+      <AIAssistant courses={processedCourses} onSelectCourse={setSelectedCourse} />
     </div>
   );
 };
