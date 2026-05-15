@@ -60,6 +60,29 @@ const App: React.FC = () => {
   
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Google Analytics Page Tracking
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      const path = viewMode === 'list' ? '/' : `/${viewMode}`;
+      (window as any).gtag('config', import.meta.env.VITE_GA_MEASUREMENT_ID, {
+        page_path: path,
+        page_title: `LO Academie - ${viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}`
+      });
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (selectedCourse && typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'view_item', {
+        items: [{
+          item_id: selectedCourse.id,
+          item_name: selectedCourse.title,
+          item_category: selectedCourse.region
+        }]
+      });
+    }
+  }, [selectedCourse]);
+
   // Check session on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
