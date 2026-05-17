@@ -196,7 +196,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses, onSelectCours
         setMessages(prev => [...prev, { role: 'model', text: response }]);
       } catch (error) {
         console.error("Wizard Error:", error);
-        setMessages(prev => [...prev, { role: 'model', text: "Er is een fout opgetreden bij het genereren van je advies. Probeer het later opnieuw." }]);
+        setMessages(prev => [...prev, { role: 'model', text: "Excuses, de studieadviseur is tijdelijk niet bereikbaar. Probeer het later nog eens." }]);
       } finally {
         setLoading(false);
       }
@@ -214,7 +214,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ courses, onSelectCours
       setMessages(prev => [...prev, { role: 'model', text: response }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "Er is een fout opgetreden bij het ophalen van een antwoord. Controleer je verbinding." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "Excuses, de studieadviseur is tijdelijk niet bereikbaar. Probeer het later nog eens." }]);
     } finally {
       setLoading(false);
     }

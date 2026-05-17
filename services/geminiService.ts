@@ -242,18 +242,12 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       contents: prompt
     }));
 
-    let text = response.text || "Sorry, ik kon op dit moment geen antwoord genereren. Probeer het later opnieuw.";
+    let text = response.text || "Excuses, de studieadviseur is tijdelijk niet bereikbaar. Probeer het later nog eens.";
 
     return text;
   } catch (error: any) {
     const errorString = typeof error === 'string' ? error : JSON.stringify(error) + " " + (error?.message || '');
     console.error("Gemini API Error:", errorString);
-    if (errorString.includes('503') || errorString.includes('UNAVAILABLE') || errorString.includes('high demand')) {
-       return "De AI-service is momenteel erg druk. Probeer het over een paar minuten nog eens.";
-    }
-    if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED') || errorString.includes('spending cap')) {
-       return "De Gemini API limiet (spending cap) is bereikt. Probeer het later opnieuw of neem contact op met de beheerder.";
-    }
-    return `Er is een fout opgetreden bij het ophalen van slimme aanbevelingen. Controleer je internetverbinding of probeer de gewone zoekfilters.`;
+    return "Excuses, de studieadviseur is tijdelijk niet bereikbaar. Probeer het later nog eens.";
   }
 };
