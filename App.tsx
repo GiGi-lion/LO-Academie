@@ -60,11 +60,34 @@ const App: React.FC = () => {
   
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Google Analytics Initialization
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (!gaId || gaId === "undefined") return;
+
+    // Load gtag.js script
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(script);
+
+    // Initialize dataLayer
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      // @ts-ignore
+      window.dataLayer.push(arguments);
+    }
+    (window as any).gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', gaId);
+  }, []);
+
   // Google Analytics Page Tracking
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).gtag) {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && gaId !== "undefined" && typeof window !== 'undefined' && (window as any).gtag) {
       const path = viewMode === 'list' ? '/' : `/${viewMode}`;
-      (window as any).gtag('config', import.meta.env.VITE_GA_MEASUREMENT_ID, {
+      (window as any).gtag('config', gaId, {
         page_path: path,
         page_title: `LO Academie - ${viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}`
       });
@@ -72,7 +95,8 @@ const App: React.FC = () => {
   }, [viewMode]);
 
   useEffect(() => {
-    if (selectedCourse && typeof window !== 'undefined' && (window as any).gtag) {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && gaId !== "undefined" && selectedCourse && typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'view_item', {
         items: [{
           item_id: selectedCourse.id,
