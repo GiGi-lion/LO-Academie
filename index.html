@@ -68,6 +68,16 @@
     <!-- ERROR TRAP (Runtime Errors) -->
     <script>
       window.addEventListener('error', function(event) {
+        // Filter out expected development-specific Vite/WebSocket/HMR connection issues
+        if (event.message && (
+          event.message.includes('WebSocket') ||
+          event.message.includes('websocket') ||
+          event.message.includes('vite') ||
+          event.message.includes('hmr')
+        )) {
+          console.warn("Ignored benign environment error (Vite/WebSocket):", event.message);
+          return;
+        }
         const root = document.getElementById('root');
         if (root) {
            console.error("Critical Start Error:", event.error);
@@ -88,6 +98,20 @@ LocalStorage Keys: ${Object.keys(localStorage).join(', ')}
       });
 
       window.addEventListener('unhandledrejection', function(event) {
+        // Filter out expected development-specific Vite/WebSocket/HMR connection issues
+        const reasonStr = event.reason ? String(event.reason) : '';
+        const reasonMsg = event.reason && event.reason.message ? String(event.reason.message) : '';
+        if (
+          reasonStr.includes('WebSocket') || 
+          reasonStr.includes('websocket') || 
+          reasonStr.includes('vite') ||
+          reasonMsg.includes('WebSocket') || 
+          reasonMsg.includes('websocket') || 
+          reasonMsg.includes('vite')
+        ) {
+          console.warn("Ignored benign environment rejection (Vite/WebSocket):", event.reason);
+          return;
+        }
         const root = document.getElementById('root');
         if (root) {
            console.error("Unhandled Rejection:", event.reason);

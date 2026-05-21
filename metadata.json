@@ -1,5 +1,6 @@
 {
   "name": "LO Academie",
   "description": "De gezamenlijke scholingskalender van ALO Nederland en de KVLO.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

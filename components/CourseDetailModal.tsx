@@ -11,15 +11,31 @@ interface CourseDetailModalProps {
 
 export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, isOpen, onClose }) => {
   const [imageError, setImageError] = useState(false);
+  const [noUrlNotice, setNoUrlNotice] = useState(false);
 
   // Reset error state when a new course is opened
   useEffect(() => {
     if (isOpen) {
       setImageError(false);
+      setNoUrlNotice(false);
     }
   }, [isOpen, course?.id]);
 
   if (!isOpen || !course) return null;
+
+  const hasNoUrl = !course.url || course.url === '#' || course.url.trim() === '' || course.url.trim() === 'https://';
+
+  const handleRegisterClick = (e: React.MouseEvent) => {
+    if (hasNoUrl) {
+      e.preventDefault();
+      setNoUrlNotice(true);
+      // Auto close after 4 seconds
+      const timer = setTimeout(() => {
+        setNoUrlNotice(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  };
 
   const isKVLO = course.organizers?.includes('KVLO');
   const isALO = course.organizers?.includes('ALO Nederland');
@@ -225,6 +241,17 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
           </div>
         </div>
 
+        {/* Notice Banner */}
+        {noUrlNotice && (
+          <div className="mx-6 mb-2 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-200 shadow-sm shrink-0">
+            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+            <div>
+              <p className="font-extrabold text-sm text-slate-800">Meer informatie volgt</p>
+              <p className="text-xs text-slate-600 mt-1">Meer informatie volgt en inschrijving is nu nog niet mogelijk.</p>
+            </div>
+          </div>
+        )}
+
         {/* Footer Actions */}
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
            
@@ -247,14 +274,23 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
              >
                Sluiten
              </button>
-             <a 
-               href={course.url}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] text-white font-bold hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-             >
-               Bekijk & Meld aan <ExternalLink className="w-4 h-4" />
-             </a>
+             {hasNoUrl ? (
+               <button 
+                 onClick={handleRegisterClick}
+                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] text-white font-bold hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
+               >
+                 Bekijk & Meld aan <ExternalLink className="w-4 h-4" />
+               </button>
+             ) : (
+               <a 
+                 href={course.url}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] text-white font-bold hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+               >
+                 Bekijk & Meld aan <ExternalLink className="w-4 h-4" />
+               </a>
+             )}
            </div>
         </div>
 

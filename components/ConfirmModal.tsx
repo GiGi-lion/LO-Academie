@@ -17,6 +17,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, message, onC
     setIsLoading(true);
     try {
       await onConfirm();
+    } catch (e) {
+      console.error("Confirm error:", e);
     } finally {
       setIsLoading(false);
       onCancel();
