@@ -66,7 +66,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
       dateStart: '',
       dateEnd: '',
       organizers: [],
-      selectedTags: []
+      selectedTags: [],
+      priceType: 'all'
     });
     setShowOnlyFavorites(false);
   };

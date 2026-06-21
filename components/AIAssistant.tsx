@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Course, ChatMessage } from '../types';
 import { getSmartRecommendations } from '../services/geminiService';
 import { Sparkles, Send, X, Bot, GraduationCap, ChevronRight, User, Target, MapPin } from 'lucide-react';
@@ -8,102 +9,92 @@ interface AIAssistantProps {
   onSelectCourse?: (course: Course) => void;
 }
 
-// Simple Markdown Formatter Component
+// Robust Markdown Formatter Component using react-markdown
 const MarkdownText: React.FC<{ text: string; isUser: boolean; courses: Course[]; onSelectCourse?: (course: Course) => void }> = ({ text, isUser, courses, onSelectCourse }) => {
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
+  return (
+    <div className="markdown-body text-sm leading-relaxed">
+      <ReactMarkdown
+        urlTransform={(url) => url}
+        components={{
+          strong: ({node, ...props}) => <strong className={isUser ? 'font-black' : 'font-bold text-slate-900'} {...props} />,
+          em: ({node, ...props}) => <em className={isUser ? 'italic' : 'italic text-slate-800'} {...props} />,
+          a: ({node, href, children, ...props}: any) => {
+            if (!href) return <a {...props}>{children}</a>;
+            
+            const url = href.trim();
+            
+            // Extract text robustly even if children contains elements (e.g. bold tags)
+            let titleText = "";
+            if (Array.isArray(children)) {
+               titleText = children.map(c => typeof c === 'string' ? c : c?.props?.children || '').join('');
+            } else if (typeof children === 'string') {
+               titleText = children;
+            } else if (children && typeof children === 'object' && children.props?.children) {
+               titleText = String(children.props.children);
+            } else {
+               titleText = String(children);
+            }
+            
+            const isCourseLink = url.toLowerCase().startsWith('course:');
+            
+            let course;
+            
+            if (isCourseLink && courses) {
+              const courseId = url.replace(/i?course:/i, '').trim();
+              course = courses.find(c => String(c.id) === courseId);
+              
+              if (!course) {
+                const searchTitle = titleText.toLowerCase().trim();
+                course = courses.find(c => c.title.toLowerCase().includes(searchTitle));
+              }
+            }
+            
+            if (!course && courses && !url.startsWith('http') && !url.startsWith('mailto:')) {
+               const searchTitle = titleText.toLowerCase().trim();
+               if (searchTitle.length > 5) {
+                 course = courses.find(c => c.title.toLowerCase().includes(searchTitle));
+               }
+            }
 
-  const parseInline = (line: string) => {
-    // Split by both bold text and markdown links
-    const parts = line.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
-    
-    return parts.map((part, i) => {
-      if (!part) return null;
+            if (course && onSelectCourse) {
+              return (
+                <button 
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    onSelectCourse(course!); 
+                  }}
+                  className={`font-bold text-left underline ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6] cursor-pointer'}`}
+                  type="button"
+                >
+                  {children}
+                </button>
+              );
+            }
 
-      // Handle bold text
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className={isUser ? 'font-black' : 'font-bold text-slate-900'}>{part.slice(2, -2)}</strong>;
-      }
-
-      // Handle markdown links
-      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (linkMatch) {
-        const url = linkMatch[2];
-        if (url.startsWith('course:')) {
-          const courseId = url.replace('course:', '').trim();
-          let course = courses.find(c => String(c.id) === courseId);
-          
-          // Fallback: if ID is wrong, try to find by title
-          if (!course) {
-            const title = linkMatch[1].toLowerCase();
-            course = courses.find(c => c.title.toLowerCase().includes(title));
-          }
-
-          if (course && onSelectCourse) {
             return (
-              <button 
-                key={i} 
-                onClick={(e) => { e.preventDefault(); onSelectCourse(course!); }}
-                className={`underline font-bold text-left ${isUser ? 'text-white' : 'text-[#00C1D4] hover:text-[#0096a6]'}`}
+              <a 
+                href={href} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`underline ${isUser ? 'text-white' : 'text-blue-600 hover:text-blue-800'}`}
+                {...props}
               >
-                {linkMatch[1]}
-              </button>
+                {children}
+              </a>
             );
-          }
-        }
-        return (
-          <a 
-            key={i} 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className={`underline ${isUser ? 'text-white' : 'text-blue-600 hover:text-blue-800'}`}
-          >
-            {linkMatch[1]}
-          </a>
-        );
-      }
-
-      // Plain text
-      return part;
-    });
-  };
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      listBuffer.push(trimmed.substring(2));
-    } else {
-      if (listBuffer.length > 0) {
-        elements.push(
-          <ul key={`list-${index}`} className="list-disc ml-5 mb-3 space-y-1">
-            {listBuffer.map((item, liIndex) => (
-              <li key={liIndex} className="pl-1">{parseInline(item)}</li>
-            ))}
-          </ul>
-        );
-        listBuffer = [];
-      }
-      if (trimmed.startsWith('### ')) {
-        elements.push(<h3 key={index} className="font-bold text-sm mt-4 mb-1 uppercase tracking-wider opacity-80">{parseInline(trimmed.substring(4))}</h3>);
-      } else if (trimmed !== '') {
-        elements.push(<p key={index} className="mb-2 last:mb-0 leading-relaxed">{parseInline(trimmed)}</p>);
-      }
-    }
-  });
-
-  if (listBuffer.length > 0) {
-    elements.push(
-      <ul key="list-end" className="list-disc ml-5 mb-3 space-y-1">
-        {listBuffer.map((item, liIndex) => (
-          <li key={liIndex} className="pl-1">{parseInline(item)}</li>
-        ))}
-      </ul>
-    );
-  }
-
-  return <>{elements}</>;
+          },
+          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal ml-5 mb-3 space-y-1" {...props} />,
+          li: ({node, ...props}) => <li className="pl-1" {...props} />,
+          h3: ({node, ...props}) => <h3 className="font-bold text-sm mt-4 mb-1 uppercase tracking-wider opacity-80" {...props} />
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
+  );
 };
 
 // Wizard Data
