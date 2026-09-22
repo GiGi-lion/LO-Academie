@@ -56,7 +56,7 @@ export const Hero: React.FC<HeroProps> = ({ courseCount, onScrollToContent }) =>
           <p className="text-lg text-slate-100 mb-8 leading-relaxed max-w-2xl drop-shadow-md font-medium">
             De centrale plek voor alle bijscholingen, cursussen en studiedagen van 
             <strong className="text-white"> KVLO</strong> en <strong className="text-white">ALO Nederland</strong>. 
-            Vind de verdieping die bij jou past.
+            Vind de verdieping die bij jou past!
           </p>
 
           <div className="flex flex-wrap gap-4 md:gap-8 border-t border-slate-500/50 pt-8">
