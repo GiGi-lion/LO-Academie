@@ -11,11 +11,22 @@ function escapeHtml(str: string): string {
 
 export default async function handler(req: any, res: any) {
   try {
-    const url = new URL(req.url, `https://${req.headers.host || 'www.lo-academie.nl'}`);
-    const courseId = url.searchParams.get('cursus') || 
-                     url.searchParams.get('course') || 
-                     url.searchParams.get('id') || 
-                     '';
+    const host = req.headers?.host || 'www.lo-academie.nl';
+    const rawUrl = req.url || '';
+    const url = new URL(rawUrl, `https://${host}`);
+    
+    let courseId = url.searchParams.get('cursus') || 
+                   url.searchParams.get('course') || 
+                   url.searchParams.get('id') || 
+                   (typeof req.query?.cursus === 'string' ? req.query.cursus : '') ||
+                   (typeof req.query?.course === 'string' ? req.query.course : '') ||
+                   (typeof req.query?.id === 'string' ? req.query.id : '') ||
+                   (typeof req.params?.id === 'string' ? req.params.id : '') ||
+                   '';
+
+    if (!courseId && url.pathname.startsWith('/cursus/')) {
+      courseId = url.pathname.replace('/cursus/', '').split('/')[0].split('?')[0];
+    }
 
     const defaultTitle = 'LO Academie - Scholingskalender voor LO-docenten';
     const defaultDescription = 'De centrale scholingskalender voor docenten Lichamelijke Opvoeding. Ontdek cursussen, workshops en studiedagen van KVLO en ALO-opleidingen.';
@@ -72,6 +83,7 @@ export default async function handler(req: any, res: any) {
     const rawImage = course?.imageUrl || course?.image_url || defaultImage;
     // Ensure image URL is absolute
     const image = rawImage.startsWith('http') ? rawImage : `${siteUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
+    const canonicalUrl = course ? `${siteUrl}/cursus/${encodeURIComponent(course.id)}` : siteUrl;
     const destinationUrl = course ? `${siteUrl}/?cursus=${encodeURIComponent(course.id)}` : siteUrl;
 
     const html = `<!DOCTYPE html>
@@ -81,12 +93,12 @@ export default async function handler(req: any, res: any) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(description)}">
-  <link rel="canonical" href="${escapeHtml(destinationUrl)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
 
   <!-- Open Graph / LinkedIn / Facebook -->
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LO Academie">
-  <meta property="og:url" content="${escapeHtml(destinationUrl)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(image)}">
@@ -97,7 +109,7 @@ export default async function handler(req: any, res: any) {
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@LOAcademie">
-  <meta name="twitter:url" content="${escapeHtml(destinationUrl)}">
+  <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">

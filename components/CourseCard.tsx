@@ -31,7 +31,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
     e.preventDefault();
     
     // Directe link naar deze specifieke scholingskaart op LO Academie
-    const directUrl = `${window.location.origin}${window.location.pathname}?cursus=${encodeURIComponent(course.id)}`;
+    const directUrl = `${window.location.origin}/cursus/${encodeURIComponent(course.id)}`;
     const shareText = `Bekijk de scholing "${course.title}" op LO Academie:`;
     
     if (navigator.share) {

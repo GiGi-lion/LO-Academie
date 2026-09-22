@@ -199,8 +199,12 @@ const App: React.FC = () => {
 
     const checkUrlCourse = () => {
       const params = new URLSearchParams(window.location.search);
-      const urlCourseId = params.get('cursus') || params.get('course') || 
+      let urlCourseId = params.get('cursus') || params.get('course') || 
         (window.location.hash.startsWith('#cursus-') ? window.location.hash.replace('#cursus-', '') : null);
+
+      if (!urlCourseId && window.location.pathname.startsWith('/cursus/')) {
+        urlCourseId = window.location.pathname.replace('/cursus/', '').split('/')[0];
+      }
 
       if (urlCourseId) {
         const decoded = decodeURIComponent(urlCourseId).trim().toLowerCase();
@@ -228,7 +232,10 @@ const App: React.FC = () => {
 
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
-      const urlCourseId = params.get('cursus') || params.get('course');
+      let urlCourseId = params.get('cursus') || params.get('course');
+      if (!urlCourseId && window.location.pathname.startsWith('/cursus/')) {
+        urlCourseId = window.location.pathname.replace('/cursus/', '').split('/')[0];
+      }
       if (urlCourseId) {
         const decoded = decodeURIComponent(urlCourseId).trim().toLowerCase();
         const found = processedCourses.find(c => c.id.toLowerCase() === decoded);

@@ -27,7 +27,7 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
 
   const getDirectCourseUrl = () => {
     if (typeof window === 'undefined' || !course) return '';
-    return `${window.location.origin}${window.location.pathname}?cursus=${encodeURIComponent(course.id)}`;
+    return `${window.location.origin}/cursus/${encodeURIComponent(course.id)}`;
   };
 
   const handleCopyDirectLink = async (e?: React.MouseEvent) => {
