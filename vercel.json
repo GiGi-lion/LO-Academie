@@ -1,0 +1,50 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "cursus"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(LinkedInBot|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Discordbot|Slackbot|SkypeUriPreview|Google-InspectionTool|bingbot).*"
+        }
+      ],
+      "destination": "/api/og-preview?cursus=:cursus"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "course"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(LinkedInBot|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Discordbot|Slackbot|SkypeUriPreview|Google-InspectionTool|bingbot).*"
+        }
+      ],
+      "destination": "/api/og-preview?cursus=:course"
+    },
+    {
+      "source": "/cursus/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(LinkedInBot|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Discordbot|Slackbot|SkypeUriPreview|Google-InspectionTool|bingbot).*"
+        }
+      ],
+      "destination": "/api/og-preview?cursus=:id"
+    },
+    {
+      "source": "/cursus/:id",
+      "destination": "/?cursus=:id"
+    }
+  ]
+}

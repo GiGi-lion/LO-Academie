@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
+import ogPreviewHandler from "./api/og-preview";
 
 function cleanHtml(html: string): string {
   // Remove script and style tags and their contents
@@ -435,6 +436,34 @@ async function startServer() {
       console.error("Admin API Error:", error);
       res.status(500).json({ error: "Er is een fout opgetreden bij de beveiligde admin actie.", details: error?.message });
     }
+  });
+
+  // Open Graph Preview Route (Direct API endpoint)
+  app.get("/api/og-preview", (req, res) => {
+    return ogPreviewHandler(req, res);
+  });
+
+  // Bot User-Agent detection pattern (LinkedIn, WhatsApp, Facebook, Twitter, Slack, Telegram, Discord, etc.)
+  const BOT_USER_AGENTS = /LinkedInBot|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Discordbot|Slackbot|SkypeUriPreview|Google-InspectionTool|bingbot/i;
+
+  // Intercept course preview requests from crawlers (e.g. LinkedIn)
+  app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const courseId = req.query.cursus || req.query.course;
+    if (courseId && BOT_USER_AGENTS.test(userAgent)) {
+      return ogPreviewHandler(req, res);
+    }
+    next();
+  });
+
+  // Support /cursus/:id clean URLs
+  app.get("/cursus/:id", (req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    if (BOT_USER_AGENTS.test(userAgent)) {
+      req.query.cursus = req.params.id;
+      return ogPreviewHandler(req, res);
+    }
+    res.redirect(`/?cursus=${encodeURIComponent(req.params.id)}`);
   });
 
   // Vite middleware for development
