@@ -30,15 +30,16 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
     e.stopPropagation();
     e.preventDefault();
     
-    const shareUrl = course.url !== '#' ? course.url : window.location.href;
-    const shareText = `Check deze scholing op LO Academie: ${course.title}`;
+    // Directe link naar deze specifieke scholingskaart op LO Academie
+    const directUrl = `${window.location.origin}${window.location.pathname}?cursus=${encodeURIComponent(course.id)}`;
+    const shareText = `Bekijk de scholing "${course.title}" op LO Academie:`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'LO Academie',
+          title: `${course.title} | LO Academie`,
           text: shareText,
-          url: shareUrl,
+          url: directUrl,
         });
         return;
       } catch (err) {
@@ -46,9 +47,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
       }
     }
 
-    // Fallback: Clipboard
+    // Fallback: Klembord kopiëren
     try {
-      const textToCopy = `${course.title}\n${shareUrl}`;
+      const textToCopy = directUrl;
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(textToCopy);
       } else {
@@ -64,7 +65,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         document.body.removeChild(textArea);
       }
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      setTimeout(() => setIsCopied(false), 2500);
     } catch (err) {
       console.error('Clipboard fallback failed', err);
     }
@@ -72,6 +73,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
 
   return (
     <div 
+      id={`course-${course.id}`}
       onClick={() => onClick(course)}
       className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full overflow-hidden hover:-translate-y-1 relative cursor-pointer"
     >
@@ -83,7 +85,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
           className={`p-2.5 rounded-full backdrop-blur-md shadow-lg transition-all ${
             isCopied ? 'bg-green-500 text-white scale-110' : 'bg-white/95 text-slate-500 hover:text-[#00C1D4] hover:scale-110'
           }`}
-          title={isCopied ? "Gekopieerd!" : "Delen"}
+          title={isCopied ? "Directe link gekopieerd!" : "Deel directe link naar deze scholing"}
         >
           {isCopied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
         </button>

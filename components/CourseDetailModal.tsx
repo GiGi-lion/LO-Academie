@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Course, sortOrganizers } from '../types';
-import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download, Clock } from 'lucide-react';
+import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download, Clock, Share2, Link2, Check } from 'lucide-react';
 import { DEFAULT_IMAGES, formatPrice } from '../constants';
 
 interface CourseDetailModalProps {
@@ -12,16 +12,74 @@ interface CourseDetailModalProps {
 export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, isOpen, onClose }) => {
   const [imageError, setImageError] = useState(false);
   const [noUrlNotice, setNoUrlNotice] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   // Reset error state when a new course is opened
   useEffect(() => {
     if (isOpen) {
       setImageError(false);
       setNoUrlNotice(false);
+      setIsLinkCopied(false);
     }
   }, [isOpen, course?.id]);
 
   if (!isOpen || !course) return null;
+
+  const getDirectCourseUrl = () => {
+    if (typeof window === 'undefined' || !course) return '';
+    return `${window.location.origin}${window.location.pathname}?cursus=${encodeURIComponent(course.id)}`;
+  };
+
+  const handleCopyDirectLink = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    const directUrl = getDirectCourseUrl();
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(directUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = directUrl;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setIsLinkCopied(true);
+      setTimeout(() => setIsLinkCopied(false), 3000);
+    } catch (err) {
+      console.error('Copy link failed:', err);
+    }
+  };
+
+  const handleShareDirectLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const directUrl = getDirectCourseUrl();
+    const shareText = `Bekijk de scholing "${course.title}" op LO Academie:`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${course.title} | LO Academie`,
+          text: shareText,
+          url: directUrl,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share error:', err);
+        }
+      }
+    }
+    handleCopyDirectLink();
+  };
 
   const hasNoUrl = !course.url || course.url === '#' || course.url.trim() === '' || course.url.trim() === 'https://';
 
@@ -96,13 +154,38 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
+        {/* Top Right Action Buttons (Share & Close) */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <button 
+            onClick={handleShareDirectLink}
+            className={`px-3 py-1.5 rounded-full backdrop-blur-md text-xs font-bold transition-all flex items-center gap-1.5 shadow-md ${
+              isLinkCopied 
+                ? 'bg-green-600 text-white' 
+                : 'bg-black/50 hover:bg-black/70 text-white'
+            }`}
+            title="Kopieer directe link naar deze scholing voor bijv. LinkedIn"
+          >
+            {isLinkCopied ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>Link gekopieerd!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Deel link</span>
+              </>
+            )}
+          </button>
+
+          <button 
+            onClick={onClose}
+            className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-colors"
+            title="Sluiten"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Scrollable Area containing Image and Content */}
         <div className="flex-1 overflow-y-auto">
@@ -255,17 +338,39 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         {/* Footer Actions */}
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
            
-           {course.date && course.date.trim() !== '' ? (
+           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+             {course.date && course.date.trim() !== '' && (
+               <button 
+                 onClick={addToCalendar}
+                 className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-[#00C1D4] hover:text-[#00C1D4] transition-colors flex items-center justify-center gap-2 group text-sm"
+               >
+                 <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                 Zet in Agenda
+               </button>
+             )}
+
              <button 
-               onClick={addToCalendar}
-               className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-[#00C1D4] hover:text-[#00C1D4] transition-colors flex items-center justify-center gap-2 group"
+               onClick={handleCopyDirectLink}
+               className={`flex-1 sm:flex-none px-4 py-3 rounded-xl border font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
+                 isLinkCopied
+                   ? 'border-green-500 bg-green-50 text-green-700'
+                   : 'border-slate-200 text-slate-600 hover:bg-white hover:border-[#7AB800] hover:text-[#7AB800]'
+               }`}
+               title="Kopieer directe link naar deze scholing voor bijv. LinkedIn"
              >
-               <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-               Zet in Agenda
+               {isLinkCopied ? (
+                 <>
+                   <Check className="w-4 h-4 text-green-600" />
+                   <span>Link gekopieerd!</span>
+                 </>
+               ) : (
+                 <>
+                   <Link2 className="w-4 h-4" />
+                   <span>Kopieer link</span>
+                 </>
+               )}
              </button>
-           ) : (
-             <div />
-           )}
+           </div>
 
            <div className="flex gap-3 w-full sm:w-auto">
              <button 

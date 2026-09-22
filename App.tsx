@@ -171,6 +171,81 @@ const App: React.FC = () => {
     });
   }, [courses]);
 
+  // Helper to open / close course detail and keep the browser URL in sync for sharing
+  const handleSelectCourse = (course: Course | null) => {
+    setSelectedCourse(course);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (course) {
+        url.searchParams.set('cursus', course.id);
+        window.history.pushState({ courseId: course.id }, '', url.toString());
+        document.title = `${course.title} | LO Academie`;
+      } else {
+        if (url.searchParams.has('cursus') || url.searchParams.has('course')) {
+          url.searchParams.delete('cursus');
+          url.searchParams.delete('course');
+          const cleanSearch = url.searchParams.toString();
+          const newUrl = url.pathname + (cleanSearch ? `?${cleanSearch}` : '');
+          window.history.pushState({}, '', newUrl);
+        }
+        document.title = "LO Academie - Scholingsaanbod KVLO & ALO Nederland";
+      }
+    }
+  };
+
+  // Deep linking: Automatically open course when URL contains ?cursus=ID or ?course=ID or #cursus-ID
+  useEffect(() => {
+    if (processedCourses.length === 0) return;
+
+    const checkUrlCourse = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlCourseId = params.get('cursus') || params.get('course') || 
+        (window.location.hash.startsWith('#cursus-') ? window.location.hash.replace('#cursus-', '') : null);
+
+      if (urlCourseId) {
+        const decoded = decodeURIComponent(urlCourseId).trim().toLowerCase();
+        const found = processedCourses.find(c => 
+          c.id.toLowerCase() === decoded || 
+          c.title.toLowerCase().trim() === decoded
+        );
+        if (found) {
+          setSelectedCourse(found);
+          document.title = `${found.title} | LO Academie`;
+          // Smoothly scroll down to content
+          setTimeout(() => {
+            const cardEl = document.getElementById(`course-${found.id}`);
+            if (cardEl) {
+              cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (contentRef.current) {
+              contentRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 350);
+        }
+      }
+    };
+
+    checkUrlCourse();
+
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlCourseId = params.get('cursus') || params.get('course');
+      if (urlCourseId) {
+        const decoded = decodeURIComponent(urlCourseId).trim().toLowerCase();
+        const found = processedCourses.find(c => c.id.toLowerCase() === decoded);
+        setSelectedCourse(found || null);
+        if (found) {
+          document.title = `${found.title} | LO Academie`;
+        }
+      } else {
+        setSelectedCourse(null);
+        document.title = "LO Academie - Scholingsaanbod KVLO & ALO Nederland";
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [processedCourses]);
+
   const allTags = useMemo(() => {
     const tagMap = new Map<string, string>();
     processedCourses.forEach(c => {
@@ -506,7 +581,7 @@ const App: React.FC = () => {
                           course={course} 
                           isFavorite={favorites.includes(course.id)}
                           onToggleFavorite={toggleFavorite}
-                          onClick={setSelectedCourse}
+                          onClick={handleSelectCourse}
                           isAdmin={isAdmin}
                           onEdit={() => { setCourseToEdit(courses.find(c => c.id === course.id) || course); setIsModalOpen(true); }}
                         />
@@ -523,8 +598,8 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {viewMode === 'calendar' && <CalendarView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
-                {viewMode === 'map' && <MapView courses={filteredAndSortedCourses} onSelectCourse={setSelectedCourse} />}
+                {viewMode === 'calendar' && <CalendarView courses={filteredAndSortedCourses} onSelectCourse={handleSelectCourse} />}
+                {viewMode === 'map' && <MapView courses={filteredAndSortedCourses} onSelectCourse={handleSelectCourse} />}
               </>
             )}
 
@@ -553,7 +628,7 @@ const App: React.FC = () => {
       <CourseDetailModal 
         isOpen={!!selectedCourse} 
         course={selectedCourse} 
-        onClose={() => setSelectedCourse(null)} 
+        onClose={() => handleSelectCourse(null)} 
       />
 
       <ConfirmModal
@@ -567,7 +642,7 @@ const App: React.FC = () => {
         onCancel={() => setConfirmAction(null)}
       />
 
-      <AIAssistant courses={processedCourses} onSelectCourse={setSelectedCourse} />
+      <AIAssistant courses={processedCourses} onSelectCourse={handleSelectCourse} />
     </div>
   );
 };
