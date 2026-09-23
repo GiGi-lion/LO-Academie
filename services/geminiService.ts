@@ -77,7 +77,9 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
       let errorMessage = `Server responded with ${response.status}`;
       try {
         const errorData = await response.json();
-        errorMessage = errorData.error || errorMessage;
+        if (errorData?.error) {
+          errorMessage = errorData.error;
+        }
       } catch (e) {
         // Not JSON
       }
@@ -85,12 +87,18 @@ export const getSmartRecommendations = async (userQuery: string, availableCourse
     }
 
     const data = await response.json();
-    return data.text;
+    return data.text || "Excuses, de studieadviseur kon geen antwoord formuleren. Probeer het later nog eens.";
   } catch (error: any) {
     const errorMsg = error?.message || String(error);
     console.error("Gemini API Error:", errorMsg);
     if (errorMsg.includes('suspended')) {
       return "Excuses, de studieadviseur is momenteel niet beschikbaar omdat de API-toegang is stopgezet. Controleer de instellingen in AI Studio.";
+    }
+    if (errorMsg.includes('GEMINI_API_KEY') || errorMsg.includes('omgevingsvariabelen') || errorMsg.includes('Vercel')) {
+      return errorMsg;
+    }
+    if (errorMsg && !errorMsg.startsWith('Server responded with') && !errorMsg.startsWith('Failed to fetch')) {
+      return errorMsg;
     }
     return "Excuses, de studieadviseur is tijdelijk niet bereikbaar. Probeer het later nog eens.";
   }

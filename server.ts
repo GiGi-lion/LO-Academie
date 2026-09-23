@@ -78,7 +78,7 @@ async function startServer() {
 
   // Gemini API Initialization (Server-side)
   const getAiClient = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       console.error("DEBUG: GEMINI_API_KEY is missing from environment variables.");
       throw new Error("GEMINI_API_KEY environment variable is not set on the server.");
@@ -168,7 +168,7 @@ async function startServer() {
     `;
 
     const result = await withRetry(() => ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -239,7 +239,7 @@ async function startServer() {
       `;
 
       const result = await withRetry(() => ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
       }));
 
@@ -275,7 +275,7 @@ async function startServer() {
       `;
 
       const result = await withRetry(() => ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
       }));
 
@@ -331,7 +331,7 @@ async function startServer() {
       `;
 
       const result = await withRetry(() => ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt
       }));
 
