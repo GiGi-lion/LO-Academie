@@ -139,7 +139,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
           {course.description}
         </p>
 
-        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between min-h-[44px]">
             {course.price === 0 ? (
               <span className="font-black text-sm px-2.5 py-1 bg-green-100 text-green-700 rounded-md uppercase tracking-wider">
                   Gratis
@@ -169,7 +169,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
             <a 
               href={`/cursus/${encodeURIComponent(course.id)}`}
               onClick={handleLinkClick}
-              className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all cursor-pointer"
+              className="shrink-0 flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all cursor-pointer py-1"
             >
               Details <ArrowRight className="w-3.5 h-3.5" />
             </a>

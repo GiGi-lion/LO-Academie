@@ -139,7 +139,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
   };
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={menuRef}>
+    <div className={`relative ${variant === 'button' ? 'flex' : 'inline-block'} text-left ${className}`} ref={menuRef}>
       {variant === 'icon' && (
         <button
           type="button"
@@ -199,7 +199,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
             e.preventDefault();
             setIsOpen(!isOpen);
           }}
-          className={`px-4 py-3 rounded-xl border font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer ${
+          className={`w-full h-11 px-4 rounded-xl border font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer whitespace-nowrap box-border ${
             isOpen
               ? 'border-[#00C1D4] bg-cyan-50 text-[#009bb0]'
               : isCopied
@@ -211,14 +211,14 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
         >
           {isCopied ? (
             <>
-              <Check className="w-4 h-4 text-green-600" />
-              <span>Link gekopieerd!</span>
+              <Check className="w-4 h-4 text-green-600 shrink-0" />
+              <span className="leading-none">Link gekopieerd!</span>
             </>
           ) : (
             <>
-              <Share2 className="w-4 h-4 text-[#00C1D4]" />
-              <span>Deel scholing</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              <Share2 className="w-4 h-4 text-[#00C1D4] shrink-0" />
+              <span className="leading-none">Deel scholing</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </>
           )}
         </button>

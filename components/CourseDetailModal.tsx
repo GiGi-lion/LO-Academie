@@ -273,47 +273,54 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         )}
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
            
-           <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+           {/* Left utility buttons: Agenda & Delen */}
+           <div className={`${course.date && course.date.trim() !== '' ? 'grid grid-cols-2' : 'flex'} sm:flex items-center gap-2.5 w-full sm:w-auto`}>
              {course.date && course.date.trim() !== '' && (
                <button 
                  onClick={addToCalendar}
-                 className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold hover:border-[#00C1D4] hover:text-[#00C1D4] transition-all flex items-center justify-center gap-2 group text-sm shadow-sm cursor-pointer"
+                 className="h-11 px-4 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold hover:border-[#00C1D4] hover:text-[#00C1D4] transition-all flex items-center justify-center gap-2 group text-sm shadow-sm cursor-pointer whitespace-nowrap box-border"
                >
-                 <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                 Zet in Agenda
+                 <Download className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
+                 <span className="leading-none">Zet in Agenda</span>
                </button>
              )}
 
-             <ShareMenu course={course} variant="button" align="top-left" />
+             <ShareMenu 
+               course={course} 
+               variant="button" 
+               align="top-left" 
+               className="w-full sm:w-auto"
+             />
            </div>
 
-           <div className="flex gap-3 w-full sm:w-auto">
+           {/* Right primary buttons: Sluiten & Inschrijven */}
+           <div className="grid grid-cols-2 sm:flex items-center gap-2.5 w-full sm:w-auto justify-end">
              <button 
-                onClick={onClose}
-                className="flex-1 sm:flex-none px-6 py-3 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm cursor-pointer"
+               onClick={onClose}
+               className="h-11 px-5 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm cursor-pointer flex items-center justify-center whitespace-nowrap box-border shadow-sm"
              >
-               Sluiten
+               <span className="leading-none">Sluiten</span>
              </button>
              {hasNoUrl ? (
                <button 
                  onClick={handleRegisterClick}
-                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm"
+                 className="h-11 px-5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm whitespace-nowrap box-border"
                  title="Inschrijving is op dit moment nog niet geopend"
                >
-                 <Clock className="w-4 h-4 text-amber-600" />
-                 <span>Meer info volgt</span>
+                 <Clock className="w-4 h-4 shrink-0 text-amber-600" />
+                 <span className="leading-none">Meer info volgt</span>
                </button>
              ) : (
                <a 
                  href={course.url}
                  target="_blank"
                  rel="noopener noreferrer"
-                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] hover:from-[#6da500] hover:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-md"
+                 className="h-11 px-5 rounded-xl border border-transparent bg-gradient-to-r from-[#7AB800] to-[#6da500] hover:from-[#6da500] hover:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-md whitespace-nowrap box-border"
                >
-                 <span>{getProviderLabel()}</span>
-                 <ExternalLink className="w-4 h-4" />
+                 <span className="leading-none">{getProviderLabel()}</span>
+                 <ExternalLink className="w-4 h-4 shrink-0" />
                </a>
              )}
            </div>
