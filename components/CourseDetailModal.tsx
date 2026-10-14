@@ -370,6 +370,19 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
                  </>
                )}
              </button>
+
+             <a 
+               href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getDirectCourseUrl())}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-[#0a66c2]/30 text-[#0a66c2] bg-white hover:bg-[#0a66c2]/5 hover:border-[#0a66c2] font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm"
+               title="Deel direct op LinkedIn met automatische kaartpreview"
+             >
+               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.45 1.45 0 0 0 1.45-1.45 1.45 1.45 0 0 0-1.45-1.45 1.45 1.45 0 0 0-1.45 1.45c0 .8.65 1.45 1.45 1.45m1.39 9.74v-8.37H5.07v8.37h2.78z"/>
+               </svg>
+               <span>LinkedIn</span>
+             </a>
            </div>
 
            <div className="flex gap-3 w-full sm:w-auto">

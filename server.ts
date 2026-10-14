@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
 import ogPreviewHandler from "./api/og-preview";
+import ogImageHandler from "./api/og-image";
 
 function cleanHtml(html: string): string {
   // Remove script and style tags and their contents
@@ -441,6 +442,11 @@ async function startServer() {
   // Open Graph Preview Route (Direct API endpoint)
   app.get("/api/og-preview", (req, res) => {
     return ogPreviewHandler(req, res);
+  });
+
+  // Open Graph Image Proxy Route (Direct API endpoint)
+  app.get("/api/og-image", (req, res) => {
+    return ogImageHandler(req, res);
   });
 
   // Bot User-Agent detection pattern (LinkedIn, WhatsApp, Facebook, Twitter, Slack, Telegram, Discord, etc.)
