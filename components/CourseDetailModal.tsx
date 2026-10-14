@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Course, sortOrganizers } from '../types';
-import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download, Clock, Share2, Link2, Check } from 'lucide-react';
+import { Calendar, MapPin, X, ExternalLink, Euro, Tag, Building2, Download, Clock } from 'lucide-react';
 import { DEFAULT_IMAGES, formatPrice } from '../constants';
+import { ShareMenu } from './ShareMenu';
 
 interface CourseDetailModalProps {
   course: Course | null;
@@ -12,74 +13,16 @@ interface CourseDetailModalProps {
 export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, isOpen, onClose }) => {
   const [imageError, setImageError] = useState(false);
   const [noUrlNotice, setNoUrlNotice] = useState(false);
-  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   // Reset error state when a new course is opened
   useEffect(() => {
     if (isOpen) {
       setImageError(false);
       setNoUrlNotice(false);
-      setIsLinkCopied(false);
     }
   }, [isOpen, course?.id]);
 
   if (!isOpen || !course) return null;
-
-  const getDirectCourseUrl = () => {
-    if (typeof window === 'undefined' || !course) return '';
-    return `${window.location.origin}/cursus/${encodeURIComponent(course.id)}`;
-  };
-
-  const handleCopyDirectLink = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    const directUrl = getDirectCourseUrl();
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(directUrl);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = directUrl;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
-      setIsLinkCopied(true);
-      setTimeout(() => setIsLinkCopied(false), 3000);
-    } catch (err) {
-      console.error('Copy link failed:', err);
-    }
-  };
-
-  const handleShareDirectLink = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const directUrl = getDirectCourseUrl();
-    const shareText = `Bekijk de scholing "${course.title}" op LO Academie:`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${course.title} | LO Academie`,
-          text: shareText,
-          url: directUrl,
-        });
-        return;
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error('Share error:', err);
-        }
-      }
-    }
-    handleCopyDirectLink();
-  };
 
   const hasNoUrl = !course.url || course.url === '#' || course.url.trim() === '' || course.url.trim() === 'https://';
 
@@ -93,6 +36,20 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
       }, 4000);
       return () => clearTimeout(timer);
     }
+  };
+
+  const getProviderLabel = () => {
+    const orgs = sortOrganizers(course.organizers);
+    if (orgs.length > 0) {
+      return `Inschrijven bij ${orgs[0]}`;
+    }
+    if (course.url) {
+      try {
+        const host = new URL(course.url).hostname.replace(/^www\./, '');
+        return `Aanmelden op ${host}`;
+      } catch (e) {}
+    }
+    return 'Bekijk & Meld aan';
   };
 
   const isKVLO = course.organizers?.includes('KVLO');
@@ -156,31 +113,11 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
       >
         {/* Top Right Action Buttons (Share & Close) */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-          <button 
-            onClick={handleShareDirectLink}
-            className={`px-3 py-1.5 rounded-full backdrop-blur-md text-xs font-bold transition-all flex items-center gap-1.5 shadow-md ${
-              isLinkCopied 
-                ? 'bg-green-600 text-white' 
-                : 'bg-black/50 hover:bg-black/70 text-white'
-            }`}
-            title="Kopieer directe link naar deze scholing voor bijv. LinkedIn"
-          >
-            {isLinkCopied ? (
-              <>
-                <Check className="w-4 h-4 text-white" />
-                <span>Link gekopieerd!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Deel link</span>
-              </>
-            )}
-          </button>
+          <ShareMenu course={course} variant="badge" align="right" />
 
           <button 
             onClick={onClose}
-            className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-colors"
+            className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-colors cursor-pointer"
             title="Sluiten"
           >
             <X className="w-5 h-5" />
@@ -338,75 +275,45 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         {/* Footer Actions */}
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
            
-           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+           <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
              {course.date && course.date.trim() !== '' && (
                <button 
                  onClick={addToCalendar}
-                 className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-[#00C1D4] hover:text-[#00C1D4] transition-colors flex items-center justify-center gap-2 group text-sm"
+                 className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold hover:border-[#00C1D4] hover:text-[#00C1D4] transition-all flex items-center justify-center gap-2 group text-sm shadow-sm cursor-pointer"
                >
                  <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
                  Zet in Agenda
                </button>
              )}
 
-             <button 
-               onClick={handleCopyDirectLink}
-               className={`flex-1 sm:flex-none px-4 py-3 rounded-xl border font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
-                 isLinkCopied
-                   ? 'border-green-500 bg-green-50 text-green-700'
-                   : 'border-slate-200 text-slate-600 hover:bg-white hover:border-[#7AB800] hover:text-[#7AB800]'
-               }`}
-               title="Kopieer directe link naar deze scholing voor bijv. LinkedIn"
-             >
-               {isLinkCopied ? (
-                 <>
-                   <Check className="w-4 h-4 text-green-600" />
-                   <span>Link gekopieerd!</span>
-                 </>
-               ) : (
-                 <>
-                   <Link2 className="w-4 h-4" />
-                   <span>Kopieer link</span>
-                 </>
-               )}
-             </button>
-
-             <a 
-               href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getDirectCourseUrl())}`}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-[#0a66c2]/30 text-[#0a66c2] bg-white hover:bg-[#0a66c2]/5 hover:border-[#0a66c2] font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm"
-               title="Deel direct op LinkedIn met automatische kaartpreview"
-             >
-               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.45 1.45 0 0 0 1.45-1.45 1.45 1.45 0 0 0-1.45-1.45 1.45 1.45 0 0 0-1.45 1.45c0 .8.65 1.45 1.45 1.45m1.39 9.74v-8.37H5.07v8.37h2.78z"/>
-               </svg>
-               <span>LinkedIn</span>
-             </a>
+             <ShareMenu course={course} variant="button" align="top-left" />
            </div>
 
            <div className="flex gap-3 w-full sm:w-auto">
              <button 
                 onClick={onClose}
-                className="flex-1 sm:flex-none px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:border-slate-300 transition-colors"
+                className="flex-1 sm:flex-none px-6 py-3 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm cursor-pointer"
              >
                Sluiten
              </button>
              {hasNoUrl ? (
                <button 
                  onClick={handleRegisterClick}
-                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] text-white font-bold hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
+                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm"
+                 title="Inschrijving is op dit moment nog niet geopend"
                >
-                 Bekijk & Meld aan <ExternalLink className="w-4 h-4" />
+                 <Clock className="w-4 h-4 text-amber-600" />
+                 <span>Meer info volgt</span>
                </button>
              ) : (
                <a 
                  href={course.url}
                  target="_blank"
                  rel="noopener noreferrer"
-                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] text-white font-bold hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-[#7AB800] to-[#6da500] hover:from-[#6da500] hover:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-md"
                >
-                 Bekijk & Meld aan <ExternalLink className="w-4 h-4" />
+                 <span>{getProviderLabel()}</span>
+                 <ExternalLink className="w-4 h-4" />
                </a>
              )}
            </div>

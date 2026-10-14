@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Course, sortOrganizers } from '../types';
-import { MapPin, Calendar, ArrowRight, Heart, Share2, Check, Pencil, Clock } from 'lucide-react';
+import { MapPin, Calendar, ArrowRight, Heart, Pencil, Clock } from 'lucide-react';
 import { DEFAULT_IMAGES, formatPrice } from '../constants';
+import { ShareMenu } from './ShareMenu';
 
 interface CourseCardProps {
   course: Course;
@@ -14,10 +15,8 @@ interface CourseCardProps {
 
 export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onToggleFavorite, onClick, isAdmin, onEdit }) => {
   const [hasError, setHasError] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   
   const isKVLO = course.organizers?.includes('KVLO');
-  const isALO = course.organizers?.includes('ALO Nederland');
 
   useEffect(() => {
     setHasError(false);
@@ -26,48 +25,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
   const fallbackIndex = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_IMAGES.length;
   const displayImage = !hasError && course.imageUrl ? course.imageUrl : DEFAULT_IMAGES[fallbackIndex];
 
-  const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // Directe link naar deze specifieke scholingskaart op LO Academie
-    const directUrl = `${window.location.origin}/cursus/${encodeURIComponent(course.id)}`;
-    const shareText = `Bekijk de scholing "${course.title}" op LO Academie:`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${course.title} | LO Academie`,
-          text: shareText,
-          url: directUrl,
-        });
-        return;
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') console.error('Share error:', err);
-      }
-    }
-
-    // Fallback: Klembord kopiëren
-    try {
-      const textToCopy = directUrl;
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(textToCopy);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = textToCopy;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2500);
-    } catch (err) {
-      console.error('Clipboard fallback failed', err);
+  const handleLinkClick = (e: React.MouseEvent) => {
+    // If not middle-click or cmd/ctrl-click, prevent full page reload and open SPA modal
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+      e.preventDefault();
+      onClick(course);
     }
   };
 
@@ -79,16 +41,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
     >
       
       {/* Actions (Heart & Share) */}
-      <div className="absolute top-4 right-4 z-40 flex gap-2">
-         <button 
-          onClick={handleShare}
-          className={`p-2.5 rounded-full backdrop-blur-md shadow-lg transition-all ${
-            isCopied ? 'bg-green-500 text-white scale-110' : 'bg-white/95 text-slate-500 hover:text-[#00C1D4] hover:scale-110'
-          }`}
-          title={isCopied ? "Directe link gekopieerd!" : "Deel directe link naar deze scholing"}
-        >
-          {isCopied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
-        </button>
+      <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+        <ShareMenu course={course} variant="icon" align="right" />
 
         <button 
           onClick={(e) => {
@@ -171,7 +125,14 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
         </div>
 
         <h3 className="text-lg font-extrabold text-slate-800 mb-2 leading-tight group-hover:text-[#00C1D4] transition-colors line-clamp-2">
-          {course.title}
+          <a
+            href={`/cursus/${encodeURIComponent(course.id)}`}
+            onClick={handleLinkClick}
+            className="hover:underline focus:outline-none"
+            title={`Bekijk details van ${course.title}`}
+          >
+            {course.title}
+          </a>
         </h3>
 
         <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">
@@ -205,9 +166,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isFavorite, onTo
                 )}
               </div>
             )}
-            <div className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all">
-                Details <ArrowRight className="w-3.5 h-3.5" />
-            </div>
+            <a 
+              href={`/cursus/${encodeURIComponent(course.id)}`}
+              onClick={handleLinkClick}
+              className="flex items-center gap-1 text-xs font-bold text-[#00C1D4] group-hover:gap-2 transition-all cursor-pointer"
+            >
+              Details <ArrowRight className="w-3.5 h-3.5" />
+            </a>
         </div>
       </div>
     </div>
