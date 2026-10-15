@@ -102,13 +102,13 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
       {/* Backdrop with blur */}
       <div className="absolute inset-0 bg-[#1e293b]/60 backdrop-blur-sm transition-opacity" />
 
       {/* Modal Content */}
       <div 
-        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh] animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Right Action Buttons (Share & Close) */}
@@ -273,57 +273,114 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, is
         )}
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-           
-           {/* Left utility buttons: Agenda & Delen */}
-           <div className={`${course.date && course.date.trim() !== '' ? 'grid grid-cols-2' : 'flex'} sm:flex items-center gap-2.5 w-full sm:w-auto`}>
-             {course.date && course.date.trim() !== '' && (
-               <button 
-                 onClick={addToCalendar}
-                 className="h-11 px-4 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold hover:border-[#00C1D4] hover:text-[#00C1D4] transition-all flex items-center justify-center gap-2 group text-sm shadow-sm cursor-pointer whitespace-nowrap box-border"
-               >
-                 <Download className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
-                 <span className="leading-none">Zet in Agenda</span>
-               </button>
-             )}
+        <div className="shrink-0 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50">
+          
+          {/* Mobile Layout (< sm) */}
+          <div className="flex sm:hidden flex-col gap-2.5 w-full">
+            {/* Primary Action Button (Full Width, never cut off) */}
+            {hasNoUrl ? (
+              <button 
+                onClick={handleRegisterClick}
+                className="w-full h-12 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm box-border"
+                title="Inschrijving is op dit moment nog niet geopend"
+              >
+                <Clock className="w-4 h-4 shrink-0 text-amber-600" />
+                <span className="truncate">Meer info volgt</span>
+              </button>
+            ) : (
+              <a 
+                href={course.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-12 px-4 rounded-xl border border-transparent bg-gradient-to-r from-[#7AB800] to-[#6da500] active:from-[#6da500] active:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all flex items-center justify-center gap-2 text-sm shadow-md box-border min-w-0"
+              >
+                <span className="truncate">{getProviderLabel()}</span>
+                <ExternalLink className="w-4 h-4 shrink-0" />
+              </a>
+            )}
 
-             <ShareMenu 
-               course={course} 
-               variant="button" 
-               align="top-left" 
-               className="w-full sm:w-auto"
-             />
-           </div>
+            {/* Utility Grid: Agenda (if date), Delen, Sluiten */}
+            <div className={`grid ${course.date && course.date.trim() !== '' ? 'grid-cols-3' : 'grid-cols-2'} gap-2 w-full`}>
+              {course.date && course.date.trim() !== '' && (
+                <button 
+                  onClick={addToCalendar}
+                  className="h-11 px-2 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold active:bg-slate-50 transition-all flex items-center justify-center gap-1.5 text-xs shadow-sm cursor-pointer box-border min-w-0"
+                  title="Voeg toe aan persoonlijke agenda"
+                >
+                  <Download className="w-4 h-4 shrink-0 text-[#00C1D4]" />
+                  <span className="truncate">Agenda</span>
+                </button>
+              )}
 
-           {/* Right primary buttons: Sluiten & Inschrijven */}
-           <div className="grid grid-cols-2 sm:flex items-center gap-2.5 w-full sm:w-auto justify-end">
-             <button 
-               onClick={onClose}
-               className="h-11 px-5 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm cursor-pointer flex items-center justify-center whitespace-nowrap box-border shadow-sm"
-             >
-               <span className="leading-none">Sluiten</span>
-             </button>
-             {hasNoUrl ? (
-               <button 
-                 onClick={handleRegisterClick}
-                 className="h-11 px-5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm whitespace-nowrap box-border"
-                 title="Inschrijving is op dit moment nog niet geopend"
-               >
-                 <Clock className="w-4 h-4 shrink-0 text-amber-600" />
-                 <span className="leading-none">Meer info volgt</span>
-               </button>
-             ) : (
-               <a 
-                 href={course.url}
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="h-11 px-5 rounded-xl border border-transparent bg-gradient-to-r from-[#7AB800] to-[#6da500] hover:from-[#6da500] hover:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-md whitespace-nowrap box-border"
-               >
-                 <span className="leading-none">{getProviderLabel()}</span>
-                 <ExternalLink className="w-4 h-4 shrink-0" />
-               </a>
-             )}
-           </div>
+              <ShareMenu 
+                course={course} 
+                variant="button" 
+                align="top-left" 
+                isMobileCompact
+                className="w-full"
+              />
+
+              <button 
+                onClick={onClose}
+                className="h-11 px-2 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold active:bg-slate-100 transition-colors text-xs cursor-pointer flex items-center justify-center shadow-sm box-border min-w-0"
+              >
+                <span className="truncate">Sluiten</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Layout (>= sm) */}
+          <div className="hidden sm:flex items-center justify-between gap-3 w-full">
+            {/* Left utility buttons: Agenda & Delen */}
+            <div className="flex items-center gap-2.5">
+              {course.date && course.date.trim() !== '' && (
+                <button 
+                  onClick={addToCalendar}
+                  className="h-11 px-4 rounded-xl border border-slate-200 text-slate-700 bg-white font-bold hover:border-[#00C1D4] hover:text-[#00C1D4] transition-all flex items-center justify-center gap-2 group text-sm shadow-sm cursor-pointer whitespace-nowrap box-border"
+                >
+                  <Download className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="leading-none">Zet in Agenda</span>
+                </button>
+              )}
+
+              <ShareMenu 
+                course={course} 
+                variant="button" 
+                align="top-left" 
+              />
+            </div>
+
+            {/* Right primary buttons: Sluiten & Inschrijven */}
+            <div className="flex items-center gap-2.5 justify-end">
+              <button 
+                onClick={onClose}
+                className="h-11 px-5 rounded-xl border border-slate-200 text-slate-600 bg-white font-bold hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm cursor-pointer flex items-center justify-center whitespace-nowrap box-border shadow-sm"
+              >
+                <span className="leading-none">Sluiten</span>
+              </button>
+              {hasNoUrl ? (
+                <button 
+                  onClick={handleRegisterClick}
+                  className="h-11 px-5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-sm whitespace-nowrap box-border"
+                  title="Inschrijving is op dit moment nog niet geopend"
+                >
+                  <Clock className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span className="leading-none">Meer info volgt</span>
+                </button>
+              ) : (
+                <a 
+                  href={course.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-11 px-5 rounded-xl border border-transparent bg-gradient-to-r from-[#7AB800] to-[#6da500] hover:from-[#6da500] hover:to-[#5e8f00] text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-md whitespace-nowrap box-border"
+                >
+                  <span className="leading-none">{getProviderLabel()}</span>
+                  <ExternalLink className="w-4 h-4 shrink-0" />
+                </a>
+              )}
+            </div>
+          </div>
+
         </div>
 
       </div>

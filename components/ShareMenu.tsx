@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Course, sortOrganizers } from '../types';
-import { Share2, Link2, Check, Mail, ChevronDown } from 'lucide-react';
+import { Share2, Link2, Check, Mail, ChevronDown, X } from 'lucide-react';
 import { formatPrice } from '../constants';
 
 interface ShareMenuProps {
@@ -8,6 +9,7 @@ interface ShareMenuProps {
   variant?: 'button' | 'icon' | 'badge';
   className?: string;
   align?: 'left' | 'right' | 'top-left' | 'top-right';
+  isMobileCompact?: boolean;
 }
 
 export const getCanonicalCourseUrl = (courseId: string): string => {
@@ -24,7 +26,8 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
   course,
   variant = 'button',
   className = '',
-  align = 'top-left'
+  align = 'top-left',
+  isMobileCompact = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -199,7 +202,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
             e.preventDefault();
             setIsOpen(!isOpen);
           }}
-          className={`w-full h-11 px-4 rounded-xl border font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer whitespace-nowrap box-border ${
+          className={`w-full h-11 px-2.5 sm:px-4 rounded-xl border font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-sm cursor-pointer whitespace-nowrap box-border ${
             isOpen
               ? 'border-[#00C1D4] bg-cyan-50 text-[#009bb0]'
               : isCopied
@@ -212,22 +215,36 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
           {isCopied ? (
             <>
               <Check className="w-4 h-4 text-green-600 shrink-0" />
-              <span className="leading-none">Link gekopieerd!</span>
+              {isMobileCompact ? (
+                <>
+                  <span className="leading-none truncate sm:hidden">Gekopieerd</span>
+                  <span className="leading-none hidden sm:inline">Link gekopieerd!</span>
+                </>
+              ) : (
+                <span className="leading-none">Link gekopieerd!</span>
+              )}
             </>
           ) : (
             <>
               <Share2 className="w-4 h-4 text-[#00C1D4] shrink-0" />
-              <span className="leading-none">Deel scholing</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              {isMobileCompact ? (
+                <>
+                  <span className="leading-none truncate sm:hidden">Delen</span>
+                  <span className="leading-none hidden sm:inline">Deel scholing</span>
+                </>
+              ) : (
+                <span className="leading-none">Deel scholing</span>
+              )}
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform hidden sm:inline ${isOpen ? 'rotate-180' : ''}`} />
             </>
           )}
         </button>
       )}
 
-      {/* Dropdown / Popover */}
+      {/* Desktop Dropdown / Popover (Hidden on Mobile) */}
       {isOpen && (
         <div
-          className={`absolute ${getPopoverPlacement()} z-50 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-in fade-in zoom-in-95 duration-150`}
+          className={`hidden sm:block absolute ${getPopoverPlacement()} z-50 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-in fade-in zoom-in-95 duration-150`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
@@ -318,7 +335,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
                 <button
                   type="button"
                   onClick={handleNativeShare}
-                  className="w-full text-center py-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#00C1D4] transition-colors"
+                  className="w-full text-center py-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#00C1D4] transition-colors cursor-pointer"
                 >
                   Meer deelopties via telefoon...
                 </button>
@@ -326,6 +343,127 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Mobile Bottom Sheet (Portal to document.body to prevent clipping) */}
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-end justify-center sm:hidden animate-in fade-in duration-200"
+          onClick={() => setIsOpen(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-white rounded-t-3xl p-5 pb-8 shadow-2xl animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Grab Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3" />
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <div className="min-w-0 pr-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Scholing delen</p>
+                <p className="text-sm font-bold text-slate-800 line-clamp-1">{course.title}</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full bg-slate-100 shrink-0 cursor-pointer"
+                aria-label="Sluit deelmenu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2">
+              {/* WhatsApp */}
+              <button
+                type="button"
+                onClick={handleWhatsApp}
+                className="w-full flex items-center gap-3.5 p-3 rounded-2xl text-left bg-emerald-50/70 hover:bg-emerald-100/70 active:scale-[0.99] transition-all cursor-pointer border border-emerald-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#25D366] flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24h.02zm-3.53 4.14c-.19 0-.41.07-.63.31-.22.25-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.16 1.7 2.6 4.13 3.65.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.44-.59 1.64-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.47-.28-.25-.13-1.44-.71-1.66-.79-.22-.09-.38-.13-.54.12-.16.25-.63.79-.77.95-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.38-.43.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.13-.54-1.31-.74-1.8-.2-.47-.4-.41-.55-.41z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-800">WhatsApp</p>
+                    <span className="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">Vaksectie</span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">Deel direct met collega&apos;s</p>
+                </div>
+              </button>
+
+              {/* LinkedIn */}
+              <button
+                type="button"
+                onClick={handleLinkedIn}
+                className="w-full flex items-center gap-3.5 p-3 rounded-2xl text-left bg-sky-50/70 hover:bg-sky-100/70 active:scale-[0.99] transition-all cursor-pointer border border-sky-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#0a66c2] flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.45 1.45 0 0 0 1.45-1.45 1.45 1.45 0 0 0-1.45-1.45 1.45 1.45 0 0 0-1.45 1.45c0 .8.65 1.45 1.45 1.45m1.39 9.74v-8.37H5.07v8.37h2.78z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800">LinkedIn</p>
+                  <p className="text-xs text-slate-500 truncate">Deel in je professionele netwerk</p>
+                </div>
+              </button>
+
+              {/* E-mail */}
+              <button
+                type="button"
+                onClick={handleEmail}
+                className="w-full flex items-center gap-3.5 p-3 rounded-2xl text-left bg-indigo-50/70 hover:bg-indigo-100/70 active:scale-[0.99] transition-all cursor-pointer border border-indigo-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-800">E-mail</p>
+                    <span className="text-[10px] text-indigo-800 bg-indigo-100 font-bold px-2 py-0.5 rounded-full">Budget / Team</span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">Stuur naar schoolleider of vaksectie</p>
+                </div>
+              </button>
+
+              {/* Directe link kopiëren */}
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="w-full flex items-center gap-3.5 p-3 rounded-2xl text-left bg-slate-50 hover:bg-slate-100 active:scale-[0.99] transition-all cursor-pointer border border-slate-200"
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm transition-colors ${
+                  isCopied ? 'bg-green-600' : 'bg-slate-700'
+                }`}>
+                  {isCopied ? <Check className="w-5 h-5" /> : <Link2 className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800">
+                    {isCopied ? 'Link succesvol gekopieerd!' : 'Kopieer directe link'}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">Directe link naar deze scholing</p>
+                </div>
+              </button>
+
+              {/* Native share on mobile */}
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <button
+                  type="button"
+                  onClick={handleNativeShare}
+                  className="w-full py-3 text-center text-xs font-bold text-slate-600 hover:text-[#00C1D4] active:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Meer deelopties via telefoon...
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
